@@ -4,7 +4,7 @@ package springboot.online_image_library.exception;
 /**
  * @author Yu'S'hui'shen
  * @date 2025/5/7
- * @description 抛出异常类
+ * @description 封装抛出异常类
  */
 public class ThrowUtils {
 
