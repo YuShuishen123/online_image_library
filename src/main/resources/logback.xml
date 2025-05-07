@@ -1,0 +1,31 @@
+<configuration>
+    <!-- 引入 Spring Boot 的默认日志配置（包括颜色定义） -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 控制台输出：使用 Spring Boot 的 %clr 着色（更简洁） -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:-}){magenta} [%4t] %clr(%-40.40logger{39}){cyan}: %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出（保留原配置，无颜色） -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/myapp.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/myapp.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 根日志和 MyBatis 配置（保留原功能） -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+    <logger name="org.apache.ibatis" level="DEBUG"/>
+    <logger name="com.baomidou" level="DEBUG"/>
+</configuration>

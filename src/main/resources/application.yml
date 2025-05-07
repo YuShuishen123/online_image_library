@@ -1,0 +1,47 @@
+server:
+  port: 6789
+  servlet:
+    context-path: /api
+spring:
+  application:
+    name: online_image_library
+#    数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://124.222.132.163:3306
+    username: remoter
+    password: mzyudada940940
+#    Mybatis-plus配置
+mybatis-plus:
+  configuration:
+    # 数据库下划线转换为驼峰
+    map-underscore-to-camel-case: false
+    # 仅在开发环境下打印日志
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: true
+    db-config:
+      # 逻辑删除字段名称
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 接口文档配置
+knife4j:
+  enable: true
+  openapi:
+    title: 在线图库项目接口文档
+    description: 接口测试文档
+    email: shuishenyu@gmail.com
+    concat: Yushuishen
+    url: https://docs.xiaominfo.com
+    version: v1.0
+    license: Apache 2.0
+    license-url: https://stackoverflow.com/
+    terms-of-service-url: https://stackoverflow.com/
+    group:
+      test1:
+        group-name: 默认
+        api-rule: package
+        api-rule-resources:
+          - springboot.online_image_library.controller
