@@ -41,7 +41,7 @@ knife4j:
     terms-of-service-url: https://stackoverflow.com/
     group:
       test1:
-        group-name: 默认
+        group-name: default
         api-rule: package
         api-rule-resources:
           - springboot.online_image_library.controller
