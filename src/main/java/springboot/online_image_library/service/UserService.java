@@ -2,6 +2,9 @@ package springboot.online_image_library.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import springboot.online_image_library.modle.entiry.User;
+import springboot.online_image_library.modle.vo.LoginUserVO;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
 * @author Yu'S'hui'shen
@@ -10,4 +13,32 @@ import springboot.online_image_library.modle.entiry.User;
 */
 public interface UserService extends IService<User> {
 
+    /**
+     * 用户注册
+     *
+     * @param userAccount   用户账户
+     * @param userPassword  用户密码
+     * @param checkPassword 校验密码
+     * @return 新用户 id
+     */
+    long userRegister(String userAccount, String userPassword, String checkPassword);
+
+    /**
+     *  用户登陆
+     * @param userAccount 账号
+     * @param userPassword 密码
+     * @param request 请求
+     * @return 登陆用户视图
+     */
+    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+
+    String getEncryptPassword(String userPassword);
+
+    /**
+     * 将User对象转换为LoginUserVO对象
+     * @param user
+     * @return LoginUserVO对象
+     */
+    LoginUserVO getLoginUserVO(User user);
 }

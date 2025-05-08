@@ -8,6 +8,10 @@ package springboot.online_image_library.exception;
  */
 public class ThrowUtils {
 
+    private ThrowUtils() {
+        throw new IllegalStateException("工具类不能实例化");
+    }
+
     /**
      * 条件成立则抛异常
      *
