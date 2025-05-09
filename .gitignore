@@ -34,3 +34,4 @@ build/
 
 ### VS Code ###
 .vscode/
+/online_image_library_vue/.trae/.ignore

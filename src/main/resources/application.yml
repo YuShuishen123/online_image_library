@@ -11,6 +11,23 @@ spring:
     url: jdbc:mysql://124.222.132.163:3306/online_image_library
     username: remoter
     password: mzyudada940940
+    #    数据库链接池配置
+    hikari:
+      pool-name: online_image_library_pool
+      # 最小空闲连接数
+      minimum-idle: 5
+      #空闲连接存活最大时间，默认600000（10分钟）
+      idle-timeout: 180000
+      # 连接池最大连接数，默认是10
+      maximum-pool-size: 20
+      #此属性控制从池返回的连接的默认自动提交行为,默认值：true
+      auto-commit: true
+      #此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
+      max-lifetime: 1800000
+      #数据库连接超时时间，默认30秒，即30000
+      connection-timeout: 30000
+      #连接测试语句，默认“SELECT 1”，如果数据库没有“SELECT 1”语句，可以配置其他语句
+      #connection-test-query: SELECT 1
 #    Mybatis-plus配置
 mybatis-plus:
   configuration:

@@ -7,6 +7,7 @@ import springboot.online_image_library.exception.ErrorCode;
  * @date 2025/5/7
  * @description 封装响应
  */
+@SuppressWarnings("unused")
 public class ResultUtils {
 
     /**
@@ -24,7 +25,7 @@ public class ResultUtils {
      * @return 响应
      */
     public static <T> BaseResponse<T> success(T data) {
-        return new BaseResponse<>(0, data, "ok");
+        return new BaseResponse<>(200, data, "ok");
     }
 
     /**
