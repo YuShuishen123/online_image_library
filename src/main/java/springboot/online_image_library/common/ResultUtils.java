@@ -5,7 +5,7 @@ import springboot.online_image_library.exception.ErrorCode;
 /**
  * @author Yu'S'hui'shen
  * @date 2025/5/7
- * @description 封装错误响应
+ * @description 封装响应
  */
 public class ResultUtils {
 
