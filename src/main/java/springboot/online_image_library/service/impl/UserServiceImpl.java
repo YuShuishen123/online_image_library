@@ -2,21 +2,31 @@ package springboot.online_image_library.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.mapper.UserMapper;
+import springboot.online_image_library.modle.dto.user.UserQueryRequest;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
 import springboot.online_image_library.modle.vo.LoginUserVO;
+import springboot.online_image_library.modle.vo.UserVO;
 import springboot.online_image_library.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import static springboot.online_image_library.constant.UserConstants.USER_ACCOUNT_NICKNAME;
 import static springboot.online_image_library.constant.UserConstants.USER_LOGIN_STATE;
 import static springboot.online_image_library.exception.ThrowUtils.throwIf;
 
@@ -35,29 +45,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private static final String SALT = "SALT";
 
     @Override
+    public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
+        throwIf(userQueryRequest==null,ErrorCode.PARAMS_ERROR,"参数为空");
+        // 拿去请求体中的字段信息
+        Long id = userQueryRequest.getId();
+        String userName = userQueryRequest.getUserName();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        // 转换为请求体
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq(ObjectUtil.isNotNull(id), "id", id);
+        queryWrapper.eq(CharSequenceUtil.isNotBlank(userRole), "userRole", userRole);
+        queryWrapper.like(CharSequenceUtil.isNotBlank(userAccount), USER_ACCOUNT_NICKNAME, userAccount);
+        queryWrapper.like(CharSequenceUtil.isNotBlank(userName), "userName", userName);
+        queryWrapper.like(CharSequenceUtil.isNotBlank(userProfile), "userProfile", userProfile);
+        queryWrapper.orderBy(CharSequenceUtil.isNotEmpty(sortField), "ascend".equals(sortOrder), sortField);
+        return queryWrapper;
+    }
+
+
+
+    @Override
+    public UserVO getUserVO(User user) {
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user,userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if(CollectionUtils.isEmpty(userList)){
+            return new ArrayList<>();
+        }
+        // 使用stream流获取userVOList
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+
+    @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
         throwIf(CharSequenceUtil.hasBlank(userAccount, userPassword, checkPassword),ErrorCode.PARAMS_ERROR,"参数为空");
         throwIf(!userPassword.equals(checkPassword),ErrorCode.PARAMS_ERROR,"两次输入的密码不一致");
         checkAccountAndPassword(userAccount, userPassword);
         // 2. 检查是否重复
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
-        long count = this.baseMapper.selectCount(queryWrapper);
-        throwIf(count > 0,ErrorCode.OPERATION_ERROR,"账号已存在");
-        // 3. 加密
-        String encryptPassword = getEncryptPassword(userPassword);
-        // 4. 插入数据
-        User user = new User();
-        user.setUserAccount(userAccount);
-        user.setUserPassword(encryptPassword);
-        user.setUserName("无名");
-        user.setUserRole(UserRoleEnum.USER.getValue());
-        boolean saveResult = this.save(user);
-        if (!saveResult) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
+        try {
+            User user = new User();
+            user.setUserAccount(userAccount);
+            user.setUserPassword(getEncryptPassword(userPassword));
+            user.setUserName("无名");
+            user.setUserRole(UserRoleEnum.USER.getValue());
+            // 直接尝试插入
+            boolean success = save(user);
+            // 处理其他插入失败情况
+            throwIf(!success, ErrorCode.OPERATION_ERROR, "注册失败");
+            return user.getId();
+        } catch (DuplicateKeyException e) {
+            // 捕获唯一键冲突异常
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "账号已存在");
         }
-        return user.getId();
     }
 
     private static void checkAccountAndPassword(String userAccount, String userPassword) {
@@ -79,7 +128,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         checkAccountAndPassword(userAccount, userPassword);
         // 2. 先仅用账号查用户
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq(USER_ACCOUNT_NICKNAME, userAccount);
         User user = this.baseMapper.selectOne(queryWrapper);
 
         // 3. 查询用户名和比对密码

@@ -25,6 +25,11 @@ public final class UserConstants {
      * 管理员角色
      */
     public static final String ADMIN_ROLE = "admin";
+
+    /**
+     * 用户账号
+     */
+    public static final String USER_ACCOUNT_NICKNAME = "userAccount";
 }
 
 

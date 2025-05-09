@@ -1,10 +1,14 @@
 package springboot.online_image_library.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import springboot.online_image_library.modle.dto.user.UserQueryRequest;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.vo.LoginUserVO;
+import springboot.online_image_library.modle.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author Yu'S'hui'shen
@@ -12,6 +16,28 @@ import javax.servlet.http.HttpServletRequest;
 * @createDate 2025-05-08 11:16:28
 */
 public interface UserService extends IService<User> {
+
+
+    /**
+     * 将用户查询请求转换为QueryWrapper对象
+     * @param userQueryRequest
+     * @return QueryWrapper对象
+     */
+    QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
+
+    /**
+     * 用户脱敏
+     * @param user
+     * @return 脱敏后的单个用户
+     */
+    UserVO getUserVO(User user);
+
+    /**
+     * 用户列表脱敏
+     * @param userList
+     * @return 脱敏后的用户列表
+     */
+    List<UserVO> getUserVOList(List<User> userList);
 
     /**
      * 用户注册
@@ -62,4 +88,6 @@ public interface UserService extends IService<User> {
      * @return LoginUserVO对象
      */
     LoginUserVO getLoginUserVO(User user);
+
+
 }

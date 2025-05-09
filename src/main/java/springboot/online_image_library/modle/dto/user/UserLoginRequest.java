@@ -1,4 +1,4 @@
-package springboot.online_image_library.modle.dto;
+package springboot.online_image_library.modle.dto.user;
 
 import lombok.Data;
 

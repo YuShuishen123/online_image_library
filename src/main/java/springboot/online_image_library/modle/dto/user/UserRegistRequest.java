@@ -1,4 +1,4 @@
-package springboot.online_image_library.modle.dto;
+package springboot.online_image_library.modle.dto.user;
 
 import lombok.Data;
 
@@ -9,7 +9,6 @@ import java.io.Serializable;
  * @date 2025/5/8
  * @description 定义用户注册请求体
  */
-
 @Data
 public class UserRegistRequest implements Serializable {
 
