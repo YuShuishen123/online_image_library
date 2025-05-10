@@ -109,6 +109,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
+    /**
+     * 账号和密码校验
+     * @param userAccount 账号
+     * @param userPassword 密码
+     */
     private static void checkAccountAndPassword(String userAccount, String userPassword) {
         throwIf(userAccount.length() > 10 || userAccount.length() < 6,ErrorCode.PARAMS_ERROR,"账号长度只能在8~10之间");
         throwIf(userPassword.length() > 16 || userPassword.length() < 8,ErrorCode.PARAMS_ERROR,"密码长度只能在8~16之间");
