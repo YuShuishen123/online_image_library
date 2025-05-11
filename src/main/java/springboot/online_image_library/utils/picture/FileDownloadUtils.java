@@ -1,4 +1,4 @@
-package springboot.online_image_library.utils;
+package springboot.online_image_library.utils.picture;
 
 import com.qcloud.cos.exception.CosClientException;
 import com.qcloud.cos.model.COSObject;

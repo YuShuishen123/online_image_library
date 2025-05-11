@@ -1,4 +1,4 @@
-package springboot.online_image_library.modle.dto.user;
+package springboot.online_image_library.modle.dto.request.user;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

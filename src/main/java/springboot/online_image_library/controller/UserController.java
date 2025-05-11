@@ -14,10 +14,10 @@ import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
-import springboot.online_image_library.modle.dto.user.*;
+import springboot.online_image_library.modle.dto.request.user.*;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
-import springboot.online_image_library.modle.vo.LoginUserVO;
-import springboot.online_image_library.modle.vo.UserVO;
 import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;

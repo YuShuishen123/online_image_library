@@ -9,8 +9,8 @@ import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
-import springboot.online_image_library.utils.FileDownloadUtils;
-import springboot.online_image_library.utils.FileUploadUtil;
+import springboot.online_image_library.utils.picture.FileDownloadUtils;
+import springboot.online_image_library.utils.picture.FileUploadUtil;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

@@ -1,21 +1,26 @@
-package springboot.online_image_library.modle.dto.user;
+package springboot.online_image_library.modle.dto.vo.user;
 
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * @author Yu'S'hui'shen
- * @date 2025/5/8
- * @description 定义更新
+ * 脱敏后的用户
  */
 @Data
-public class UserUpdateRequest implements Serializable {
+public class UserVO implements Serializable {
 
     /**
      * id
      */
     private Long id;
+    
+    /**
+     * 账号
+     */
+    private String userAccount;
 
     /**
      * 用户昵称
@@ -28,7 +33,7 @@ public class UserUpdateRequest implements Serializable {
     private String userAvatar;
 
     /**
-     * 简介
+     * 用户简介
      */
     private String userProfile;
 
@@ -36,6 +41,16 @@ public class UserUpdateRequest implements Serializable {
      * 用户角色：user/admin
      */
     private String userRole;
+
+    /**
+     * 创建时间
+     */
+    private Date createTime;
+
+    /**
+     * 更新时间
+     */
+    private Date updateTime;
 
     private static final long serialVersionUID = 1L;
 }

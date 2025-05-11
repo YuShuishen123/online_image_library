@@ -2,10 +2,10 @@ package springboot.online_image_library.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
-import springboot.online_image_library.modle.dto.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
-import springboot.online_image_library.modle.vo.LoginUserVO;
-import springboot.online_image_library.modle.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;

@@ -14,11 +14,11 @@ import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.mapper.UserMapper;
-import springboot.online_image_library.modle.dto.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
-import springboot.online_image_library.modle.vo.LoginUserVO;
-import springboot.online_image_library.modle.vo.UserVO;
 import springboot.online_image_library.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
