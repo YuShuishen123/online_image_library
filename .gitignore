@@ -7,6 +7,10 @@ target/
 logs/
 node_modules/
 
+### custom ###
+application-local.yml
+
+
 ### STS ###
 .apt_generated
 .classpath

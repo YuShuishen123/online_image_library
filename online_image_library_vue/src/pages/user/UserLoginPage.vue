@@ -20,38 +20,42 @@
         <RouterLink to="/user/register">去注册</RouterLink>
       </div>
       <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">登录</a-button>
+        <a-button type="primary" html-type="submit" :loading="loading" style="width: 100%">登录</a-button>
       </a-form-item>
     </a-form>
   </div>
 </template>
 
 <script setup lang="ts">
-import {reactive} from 'vue'
+import {reactive, ref} from 'vue'
 import {userLoginUsingPost} from '@/api/userController'
 import {useLoginUserStore} from '@/stores/useLoginUserStore'
 import {message} from 'ant-design-vue'
-
+import {useRouter} from 'vue-router' // 添加这行导入
+const loading = ref(false)
+const router = useRouter()  // 添加这行
 const formState = reactive<API.UserLoginRequest>({
   userAccount: '',
   userPassword: '',
 })
 const loginUserStore = useLoginUserStore()
 const handleSubmit = async () => {
-  const res = await userLoginUsingPost(formState)
-  if (res.data.code === 200) {
-    console.log('登录成功', res.data)
-    // 保存用户信息到本地存储
-    // 把状态保存到stores
-    if (res.data.data) {
-      loginUserStore.setLoginUser(res.data.data)
+  loading.value = true
+  try {
+    const res = await userLoginUsingPost(formState)
+    if (res.data.code === 200) {
+      message.success('登录成功')
+      console.log('登录成功', res.data)
+      if (res.data.data) {
+        loginUserStore.setLoginUser(res.data.data)
+      }
+      router.push('/')
+    } else {
+      console.log('登录失败', res.data)
+      message.error(res.data.message)
     }
-    // 跳转到首页
-    window.location.href = '/'
-  } else {
-    console.log('登录失败', res.data)
-    // 提示登录失败
-    message.error(res.data.message)
+  } finally {
+    loading.value = false
   }
 }
 </script>

@@ -52,7 +52,7 @@ import {useLoginUserStore} from '@/stores/useLoginUserStore'
 import {HomeOutlined} from '@ant-design/icons-vue'
 import checkAccess from '@/access/checkAccess';
 
-const router = useRouter();
+const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
 
@@ -72,7 +72,7 @@ const logout = async () => {
     });
     message.success('退出登录成功')
     // 跳转到首页
-    window.location.href = '/'
+    router.push('/')
   } else {
     message.error("退出登录失败," + res.data.message)
   }
@@ -105,7 +105,6 @@ const originItems = ref<MenuProps['items']>([
 const menuToRouteItem = (menu: any): RouteRecordRaw => {
   // 获取所有路由
   const routes = router.getRoutes()
-  console.log('routes', routes)
   // 根据菜单的key查找对应的路由
   const route = routes.find((route) => route.path === menu.key)
   // 如果找到对应路由则返回，否则返回一个默认的空路由对象

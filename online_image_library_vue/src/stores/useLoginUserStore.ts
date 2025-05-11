@@ -18,8 +18,6 @@ export const useLoginUserStore = defineStore('loginUser', () => {
   async function fetchLoginUser() {
     // 调用api获取登陆用户
     getLoginUserUsingGet().then((res) => {
-      // 判断是否登录成功
-      console.log(res)
       if (res.data.code === 200) {
         if (res.data.data) {
           setLoginUser(res.data.data)

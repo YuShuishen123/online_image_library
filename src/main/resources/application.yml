@@ -8,9 +8,9 @@ spring:
 #    数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://124.222.132.163:3306/online_image_library
-    username: remoter
-    password: mzyudada940940
+    url: jdbc:mysql://ip:3306/online_image_library
+    username: user
+    password: password
     #    数据库链接池配置
     hikari:
       pool-name: online_image_library_pool
@@ -62,3 +62,11 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - springboot.online_image_library.controller
+# 对象存储配置（需要从腾讯云获取）
+cos:
+  client:
+    host:
+    secretId:
+    secretKey:
+    region:
+    bucket:
