@@ -93,7 +93,7 @@ public class PictureController {
     )
     @GetMapping("/admin/get")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
-    public BaseResponse<Picture>  getPictureById(Long id,HttpServletRequest httpServletRequest){
+    public BaseResponse<Picture>  getPictureById(Long id){
         ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
         // 查询数据库
         Picture picture = pictureService.getById(id);
@@ -113,7 +113,7 @@ public class PictureController {
             response = BaseResponse.class
     )
     @GetMapping("/get")
-    public BaseResponse<PictureVO>  getPictureVoById(Long id,HttpServletRequest httpServletRequest){
+    public BaseResponse<PictureVO>  getPictureVoById(Long id){
         ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
         // 查询数据库
         Picture picture = pictureService.getById(id);

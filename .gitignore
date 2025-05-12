@@ -39,3 +39,5 @@ build/
 ### VS Code ###
 .vscode/
 /online_image_library_vue/.trae/.ignore
+src/main/resources/application-local.yml
+src/main/resources/application-local.yml
