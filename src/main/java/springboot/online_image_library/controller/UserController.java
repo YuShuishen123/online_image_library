@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
@@ -13,10 +14,10 @@ import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
-import springboot.online_image_library.modle.dto.user.*;
+import springboot.online_image_library.modle.dto.request.user.*;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
-import springboot.online_image_library.modle.vo.LoginUserVO;
-import springboot.online_image_library.modle.vo.UserVO;
 import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;
@@ -123,17 +124,22 @@ public class UserController {
     )
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
-    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest){
-        throwIf(userAddRequest == null,ErrorCode.PARAMS_ERROR);
+    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
+        throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
         User user = new User();
         // 获取请求体中的字段信息
-        BeanUtils.copyProperties(userAddRequest,user);
+        BeanUtils.copyProperties(userAddRequest, user);
         // 默认密码
         user.setUserPassword(userService.getEncryptPassword("123456789"));
-        // 调用baseService提供的save方法
-        ThrowUtils.throwIf(!userService.save(user),ErrorCode.OPERATION_ERROR);
+        try {
+            userService.save(user);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户已经存在");
+        }
         return ResultUtils.success(user.getId());
     }
+
+
 
     /**
      * 根据 id 获取用户（仅管理员）
@@ -146,10 +152,13 @@ public class UserController {
     )
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
-    public BaseResponse<User> getUserById(long id) {
+    public BaseResponse<User> getUserById(@RequestParam(defaultValue = "0") Long id) {
+        if (id == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"id参数不能为空或为0");
+        }
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR,"查询的用户不存在");
         return ResultUtils.success(user);
     }
 
@@ -168,8 +177,10 @@ public class UserController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean b = userService.removeById(deleteRequest.getId());
-        return ResultUtils.success(b);
+        // 判断用户是否存在
+        throwIf(userService.getById(deleteRequest.getId()) == null,ErrorCode.NOT_FOUND_ERROR);
+        throwIf(!userService.removeById(deleteRequest.getId()),ErrorCode.OPERATION_ERROR,"删除用户失败");
+        return ResultUtils.success(true);
     }
 
     /**
@@ -193,6 +204,5 @@ public class UserController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
-
 
 }

@@ -14,11 +14,11 @@ import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.mapper.UserMapper;
-import springboot.online_image_library.modle.dto.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
-import springboot.online_image_library.modle.vo.LoginUserVO;
-import springboot.online_image_library.modle.vo.UserVO;
 import springboot.online_image_library.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -109,6 +109,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
+    /**
+     * 账号和密码校验
+     * @param userAccount 账号
+     * @param userPassword 密码
+     */
     private static void checkAccountAndPassword(String userAccount, String userPassword) {
         throwIf(userAccount.length() > 10 || userAccount.length() < 6,ErrorCode.PARAMS_ERROR,"账号长度只能在8~10之间");
         throwIf(userPassword.length() > 16 || userPassword.length() < 8,ErrorCode.PARAMS_ERROR,"密码长度只能在8~16之间");
@@ -187,6 +192,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         BeanUtil.copyProperties(user,loginUserVO);
         return loginUserVO;
     }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
+
+
 }
 
 

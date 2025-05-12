@@ -14,6 +14,14 @@
         <spring-boot.version>2.7.6</spring-boot.version>
     </properties>
     <dependencies>
+        <!--cos对象存储依赖-->
+        <!-- https://mvnrepository.com/artifact/com.qcloud/cos_api -->
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.245</version>
+        </dependency>
+
         <!--切面依赖-->
         <dependency>
             <groupId>org.springframework.boot</groupId>

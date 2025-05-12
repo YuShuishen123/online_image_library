@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.ResultUtils;
 
+import java.sql.SQLException;
+
 /**
  * @author Yu'S'hui'shen
  * @date 2025/5/7
@@ -25,6 +27,12 @@ public class GlobalExceptionHandler {
     public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);
         return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误");
+    }
+
+    @ExceptionHandler(SQLException.class)
+    public BaseResponse<?> sqlExceptionHandler(SQLException e) {
+        log.error("SQLException", e);
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "数据库错误");
     }
 }
 

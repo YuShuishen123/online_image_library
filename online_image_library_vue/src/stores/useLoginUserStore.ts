@@ -1,28 +1,33 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-
-// 定义用户类型接口
-interface LoginUser {
-  userId: number | null
-  userName: string
-}
+import {getLoginUserUsingGet} from '@/api/userController'
 
 export const useLoginUserStore = defineStore('loginUser', () => {
   // 初始化为未登录状态
-  const loginUser = ref<LoginUser>({
-    userId: 0,
-    userName: '未登录',
+  const loginUser = ref<API.LoginUserVO>({
+    createTime: '',
+    id: 0,
+    updateTime: '',
+    userAccount: '',
+    userAvatar: '',
+    userName: '',
+    userProfile: '',
+    userRole: 'user',
   })
 
   async function fetchLoginUser() {
-    // 测试用户登录，3 秒后登录
-    setTimeout(() => {
-      loginUser.value = { userName: '测试用户', userId: 1 }
-    }, 3000)
+    // 调用api获取登陆用户
+    getLoginUserUsingGet().then((res) => {
+      if (res.data.code === 200) {
+        if (res.data.data) {
+          setLoginUser(res.data.data)
+        }
+      }
+    })
   }
 
-  function setLoginUser(newLoginUser: LoginUser) {
-    loginUser.value = newLoginUser
+  function setLoginUser(newLoginUserVO: API.LoginUserVO) {
+    loginUser.value = newLoginUserVO
   }
 
   return { loginUser, setLoginUser, fetchLoginUser }
