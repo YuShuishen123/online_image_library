@@ -1,13 +1,18 @@
 package springboot.online_image_library.manager;
 
 import com.qcloud.cos.COSClient;
+import com.qcloud.cos.exception.CosClientException;
+import com.qcloud.cos.exception.CosServiceException;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.GetObjectRequest;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.PicOperations;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import springboot.online_image_library.config.CosClientConfig;
+import springboot.online_image_library.exception.BusinessException;
+import springboot.online_image_library.exception.ErrorCode;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -16,6 +21,7 @@ import java.io.File;
  * @author Yu'S'hui'shen
  * Cos云存储通用工具类
  */
+@Slf4j
 @Component
 public class CosManager {
   
@@ -54,8 +60,6 @@ public class CosManager {
     }
 
 
-
-
     /**
      * 下载对象
      *
@@ -64,6 +68,27 @@ public class CosManager {
     public COSObject getObject(String key) {
         GetObjectRequest getObjectRequest = new GetObjectRequest(cosClientConfig.getBucket(), key);
         return cosClient.getObject(getObjectRequest);
+    }
+
+    /**
+     * @param bucketName 存储桶
+     * @param key        对象唯一区分路径
+     * @return
+     * @throws CosClientException  对象存储客户端异常
+     * @throws CosServiceException 删除服务异常
+     */
+    public boolean deleteObject(String bucketName, String key)
+            throws CosClientException, CosServiceException{
+        try {
+            cosClient.deleteObject(bucketName, key);
+        } catch (CosServiceException cosServiceException){
+            log.error("发生CosServiceException，异常信息：{}", cosServiceException.getMessage(), cosServiceException);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,cosServiceException.getMessage());
+        } catch (CosClientException cosClientException) {
+            log.error("发生CosClientException，异常信息：{}", cosClientException.getMessage(), cosClientException);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,cosClientException.getMessage());
+        }
+        return true;
     }
 
 

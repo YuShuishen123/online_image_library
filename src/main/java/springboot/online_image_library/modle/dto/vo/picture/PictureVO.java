@@ -87,11 +87,7 @@ public class PictureVO implements Serializable {
      */  
     private Date editTime;  
   
-    /**  
-     * 更新时间  
-     */  
-    private Date updateTime;  
-  
+
     /**  
      * 创建用户信息  
      */  
@@ -116,15 +112,14 @@ public class PictureVO implements Serializable {
     /**  
      * 对象转封装类  
      */  
-    public static PictureVO objToVo(Picture picture,UserVO userVO) {
+    public static PictureVO objToVo(Picture picture) {
         if (picture == null) {  
             return null;  
         }  
         PictureVO pictureVO = new PictureVO();  
         BeanUtils.copyProperties(picture, pictureVO);  
         // 类型不同，需要转换
-        pictureVO.setUser(userVO);
-        pictureVO.setTags(JSONUtil.toList(picture.getTags(), String.class));  
+        pictureVO.setTags(JSONUtil.toList(picture.getTags(), String.class));
         return pictureVO;  
     }  
 }

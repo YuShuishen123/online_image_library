@@ -46,7 +46,9 @@ mybatis-plus:
       logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
-
+logging:
+  level:
+    springboot.online_image_library.service: INFO
 # 接口文档配置
 knife4j:
   enable: true

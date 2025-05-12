@@ -177,8 +177,10 @@ public class UserController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean b = userService.removeById(deleteRequest.getId());
-        return ResultUtils.success(b);
+        // 判断用户是否存在
+        throwIf(userService.getById(deleteRequest.getId()) == null,ErrorCode.NOT_FOUND_ERROR);
+        throwIf(!userService.removeById(deleteRequest.getId()),ErrorCode.OPERATION_ERROR,"删除用户失败");
+        return ResultUtils.success(true);
     }
 
     /**
@@ -202,6 +204,5 @@ public class UserController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
-
 
 }
