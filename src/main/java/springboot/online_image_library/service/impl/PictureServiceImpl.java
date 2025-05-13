@@ -125,7 +125,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (pictureQueryRequest == null) {
             return queryWrapper;
         }
-
         // 获取查询参数
         Long id = pictureQueryRequest.getId();
         String name = pictureQueryRequest.getName();
@@ -141,6 +140,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long userId = pictureQueryRequest.getUserId();
         String sortField = pictureQueryRequest.getSortField();
         String sortOrder = pictureQueryRequest.getSortOrder();
+        // 新增审核相关的查询参数
+        Integer reviewStatus = pictureQueryRequest.getReviewStatus();
+        String reviewMessage = pictureQueryRequest.getReviewMessage();
+        Long reviewerId = pictureQueryRequest.getReviewerId();
+
 
         // 多字段搜索（名称或简介）
         if (ObjectUtil.isNotEmpty(searchText)) {
@@ -158,12 +162,18 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.like(ObjectUtil.isNotEmpty(introduction), "introduction", introduction);
         queryWrapper.like(ObjectUtil.isNotEmpty(picFormat), "picFormat", picFormat);
 
-        // 其他字段
+        // 其他图片信息相关的精确匹配字段
         queryWrapper.eq(ObjectUtil.isNotEmpty(category), "category", category);
         queryWrapper.eq(ObjectUtil.isNotEmpty(picWidth), "picWidth", picWidth);
         queryWrapper.eq(ObjectUtil.isNotEmpty(picHeight), "picHeight", picHeight);
         queryWrapper.eq(ObjectUtil.isNotEmpty(picSize), "picSize", picSize);
         queryWrapper.eq(ObjectUtil.isNotEmpty(picScale), "picScale", picScale);
+
+        // 审核相关的字段
+        queryWrapper.eq(ObjectUtil.isNotEmpty(reviewStatus),"reviewStatus", reviewStatus);
+        queryWrapper.like(ObjectUtil.isNotEmpty(reviewMessage), "reviewMessage", reviewMessage);
+        queryWrapper.eq(ObjectUtil.isNotEmpty(reviewerId),"reviewerId", reviewerId);
+
 
         // 标签查询（JSON数组格式）
         if (CollUtil.isNotEmpty(tags)) {

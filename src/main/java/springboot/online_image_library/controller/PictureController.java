@@ -18,6 +18,7 @@ import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
 import springboot.online_image_library.modle.entiry.Picture;
 import springboot.online_image_library.modle.entiry.User;
+import springboot.online_image_library.modle.enums.PictureReviewStatusEnum;
 import springboot.online_image_library.service.PictureService;
 import springboot.online_image_library.service.UserService;
 
@@ -148,7 +149,7 @@ public class PictureController {
      */
     @ApiOperation(
             value = "分页获取图片列表(用户)",
-            notes = "用于用户获取图片列表功能",
+            notes = "用于用户获取图片列表功能,普通用户只能查看审核状态为已通过的图片(强制)",
             httpMethod = "POST",
             response = BaseResponse.class
     )
@@ -160,6 +161,8 @@ public class PictureController {
         long size = pictureQueryRequest.getPageSize();
         // 限制爬虫,限制每次最多获取20条数据
         ThrowUtils.throwIf(size > 20,ErrorCode.PARAMS_ERROR);
+        // 普通用户只能查看审核状态为已通过的图片(强制)
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
         // 建立分页对象
         Page<Picture> picturePage = pictureService.page(new Page<>(current,size),pictureService.getQueryWrapper(pictureQueryRequest));
         return ResultUtils.success(pictureService.getPictureVoPage(picturePage));
