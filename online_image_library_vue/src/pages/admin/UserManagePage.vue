@@ -50,9 +50,9 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue'
-import {message} from 'ant-design-vue'
-import {deleteUserUsingPost, getUserVobyIdUsingPost} from '@/api/userController'
+import { onMounted, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
+import { deleteUserUsingPost, getUserVobyIdUsingPost } from '@/api/userController'
 import dayjs from 'dayjs'
 
 
