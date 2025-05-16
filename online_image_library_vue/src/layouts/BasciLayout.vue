@@ -1,6 +1,6 @@
 <template>
   <div id="basciLayout">
-    <a-layout style="height: 100vh;">
+    <a-layout style="height: 100vh">
       <a-layout-header :style="headerStyle" class="header">
         <GlobalHeader />
       </a-layout-header>
@@ -11,7 +11,13 @@
         <div class="footer-content">
           <div class="copyright">
             <span>© 2023-{{ currentYear }} </span>
-            <a href="https://github.com/YuShuishen123?tab=repositories" target="_blank" class="footer-link"> Github</a>
+            <a
+              href="https://github.com/YuShuishen123?tab=repositories"
+              target="_blank"
+              class="footer-link"
+            >
+              Github</a
+            >
             <span> | Create By YuShuishen</span>
           </div>
           <div class="footer-info">
@@ -24,22 +30,23 @@
 </template>
 
 <script setup lang="ts">
-import GlobalHeader from '../components/GlobalHeader.vue';
+import GlobalHeader from '../components/GlobalHeader.vue'
 // 获取当前年份用于版权信息
-const currentYear = new Date().getFullYear();
+const currentYear = new Date().getFullYear()
 
 // 这里可以定义您的样式变量
 const headerStyle = {
   background: '#fff',
   padding: '0 20px',
-  borderBottom: '1px solid #f0f0f0'
-};
+  borderBottom: '1px solid #f0f0f0',
+}
 
+// 这里可以定义您的样式变量
 const contentStyle = {
   padding: '24px',
   background: '#fff',
-  minHeight: '280px'
-};
+  minHeight: '280px',
+}
 </script>
 
 <style scoped>
@@ -57,11 +64,13 @@ const contentStyle = {
   justify-content: center;
 }
 
+/* Copyright */
 .copyright {
   margin-bottom: 8px;
   font-size: 14px;
 }
 
+/* Footer Info */
 .footer-info {
   font-size: 12px;
   color: rgba(0, 0, 0, 0.45);

@@ -6,6 +6,7 @@ import ACCESS_ENUM from '@/access/accessEnum'
  * @param needAccess 需要有的权限
  * @return boolean 有无权限
  */
+
 const checkAccess = (loginUser: API.LoginUserVO, needAccess = ACCESS_ENUM.NOT_LOGIN) => {
   const loginUserAccess = loginUser?.userRole ?? ACCESS_ENUM.NOT_LOGIN
 
