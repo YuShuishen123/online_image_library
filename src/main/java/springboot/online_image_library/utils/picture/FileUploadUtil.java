@@ -77,8 +77,6 @@ public class FileUploadUtil {
         }
     }
 
-
-
     // 上下文对象，封装上传所需参数
     private static class FileUploadContext {
         final String filePath;
@@ -94,7 +92,7 @@ public class FileUploadUtil {
         }
     }
 
-    // 重构后的上传方法
+    // 重构后的文件上传方法
     public String uploadFile(MultipartFile multipartFile, String basePath) {
         return handleFileUpload(multipartFile, basePath, context -> {
             cosManager.putObject(context.filePath, context.tempFile);
@@ -117,6 +115,14 @@ public class FileUploadUtil {
             result.setUrl(cosClientConfig.getHost() + "/" +context.filePath);
             return result;
         });
+    }
+
+    // 通过URL上传图片
+    public String uploadPictureByUrl(String url) {
+        // 1.检验url
+        // 2.下载图片
+        // 3.上传图片
+        
     }
 
 

@@ -18,6 +18,8 @@ import java.util.Arrays;
  * @author Yu'S'hui'shen
  * @date 2025/5/11
  * @description 日志记录所有被调用的controller层方法
+ *
+ *
  */
 @Slf4j
 @Aspect
@@ -27,6 +29,7 @@ public class LogAop {
     // 定义切入点：所有Controller类的方法
     @Pointcut("execution(* springboot.online_image_library.controller..*.*(..))")
     public void controllerPointcut() {}
+
 
     // 环绕通知：记录方法调用前后信息
     @Around("controllerPointcut()")

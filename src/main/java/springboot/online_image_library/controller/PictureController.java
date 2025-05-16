@@ -137,6 +137,7 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
         // 提取分页相关信息
+
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 建立分页对象
