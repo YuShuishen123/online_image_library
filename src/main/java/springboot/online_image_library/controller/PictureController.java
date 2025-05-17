@@ -63,6 +63,19 @@ public class PictureController {
         return ResultUtils.success(pictureVO);
     }
 
+    /**
+     * 根据url上传图片
+     */
+    @PostMapping("/upload/url")
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    public BaseResponse<PictureVO> uploadPictureByUrl(
+            PictureUploadRequest pictureUploadRequest,
+            String fileurl,
+            HttpServletRequest request){
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(pictureService.uploadPictureByUrl(fileurl,pictureUploadRequest,loginUser));
+    }
+
 
     /**
      * 删除图片
@@ -240,6 +253,7 @@ public class PictureController {
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
         return ResultUtils.success(true);
     }
+
 
 
 

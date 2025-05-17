@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.common.DeleteRequest;
+import springboot.online_image_library.modle.BO.UploadPictureResult;
 import springboot.online_image_library.modle.dto.request.picture.PictureQueryRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureReviewRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureUploadRequest;
@@ -33,6 +34,21 @@ public interface PictureService extends IService<Picture> {
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
+
+    /**
+     * 处理图片上传的公共逻辑(负责实体映射, 文件上传, 删除旧图片,审核设置等)
+     * @param picture 图片实体
+     * @param uploadResult 上传结果
+     * @param loginUser 当前登录用户
+     * @param isUpdate 是否为更新操作
+     * @param oldPictureUrl 旧图片URL(仅更新时使用)
+     * @return 图片VO对象
+     */
+    PictureVO handlePictureUpload(Picture picture,
+                                  UploadPictureResult uploadResult,
+                                  User loginUser,
+                                  boolean isUpdate,
+                                  String oldPictureUrl);
 
     /**
      * 将图片查询请求转为 QueryWrapper 对象
@@ -86,10 +102,19 @@ public interface PictureService extends IService<Picture> {
     void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
 
     /**
-     * 填充图片审核参数
+     * 根据上传人员身份填充图片审核参数
      *
      * @param picture 图片对象
      * @param loginUser 登录用户
      */
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 通过url上传图片
+     * @param fileurl 图片url
+     * @param pictureUploadRequest 图片上传请求
+     * @param loginUser 登录用户
+     * @return 上传结果
+     */
+    PictureVO uploadPictureByUrl(String fileurl, PictureUploadRequest pictureUploadRequest, User loginUser);
 }
