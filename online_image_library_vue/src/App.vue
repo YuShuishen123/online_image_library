@@ -25,4 +25,5 @@ healthUsingGet().then((res) => {
   // 处理 API 返回的数据
   console.log(res)
 })
+
 </script>
