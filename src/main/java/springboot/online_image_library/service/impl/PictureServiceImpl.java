@@ -93,6 +93,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             picture.setCreateTime(new Date());
         }
 
+        // 图片名称
+        if (pictureUploadRequest.getName() != null) {
+            picture.setName(pictureUploadRequest.getName());
+        }
+
         // 4. 文件上传
         UploadPictureResult uploadResult = fileUploadUtil.uploadPicture(multipartFile, uploadPathPrefix);
 
@@ -135,7 +140,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     @Override
-    public int uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+    public List<PictureVO> uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
         // 参数校验
         fileUploadUtil.validateBatchUploadParams(pictureUploadByBatchRequest);
 
@@ -158,10 +163,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      * @param loginUser     登录用户
      * @return 成功上传的数量
      */
-    private int uploadImages(List<FileUploadUtil.ImageData> imageDataList, int maxCount, User loginUser) {
+    private List<PictureVO> uploadImages(List<FileUploadUtil.ImageData> imageDataList, int maxCount, User loginUser) {
         int uploadSuccessCount = 0;
+        List<PictureVO> pictureVOList = new ArrayList<>();
         PictureUploadRequest uploadRequest = new PictureUploadRequest();
-
         for (FileUploadUtil.ImageData imageData : imageDataList) {
             // 检查是否已达到最大上传数量
             if (uploadSuccessCount >= maxCount) {
@@ -173,6 +178,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 try {
                     uploadRequest.setName(imageData.getTitle());
                     PictureVO pictureVO = uploadPictureByUrl(fileUrl, uploadRequest, loginUser);
+                    pictureVOList.add(pictureVO);
                     log.info("图片上传成功, id = {}", pictureVO.getId());
                     uploadSuccessCount++;
                 } catch (Exception e) {
@@ -183,7 +189,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         log.info("图片上传完成: 成功 {} 张", uploadSuccessCount);
-        return uploadSuccessCount;
+        return pictureVOList;
     }
 
 

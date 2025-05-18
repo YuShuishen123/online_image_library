@@ -15,6 +15,7 @@ import springboot.online_image_library.modle.entiry.Picture;
 import springboot.online_image_library.modle.entiry.User;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author Yu'S'hui'shen
@@ -127,7 +128,7 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser                   登录用户,用于获取长传者信息
      * @return 成功创建的图片数
      */
-    int uploadPictureByBatch(
+    List<PictureVO> uploadPictureByBatch(
             PictureUploadByBatchRequest pictureUploadByBatchRequest,
             User loginUser
     );
