@@ -42,3 +42,4 @@ build/
 /online_image_library_vue/.trae/.ignore
 src/main/resources/application-local.yml
 /.lingma
+/online_image_library_vue/result.html

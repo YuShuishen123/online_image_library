@@ -8,6 +8,7 @@ import springboot.online_image_library.common.DeleteRequest;
 import springboot.online_image_library.modle.BO.UploadPictureResult;
 import springboot.online_image_library.modle.dto.request.picture.PictureQueryRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureReviewRequest;
+import springboot.online_image_library.modle.dto.request.picture.PictureUploadByBatchRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureUploadRequest;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
 import springboot.online_image_library.modle.entiry.Picture;
@@ -117,4 +118,18 @@ public interface PictureService extends IService<Picture> {
      * @return 上传结果
      */
     PictureVO uploadPictureByUrl(String fileurl, PictureUploadRequest pictureUploadRequest, User loginUser);
+
+
+    /**
+     * 批量抓取和创建图片
+     *
+     * @param pictureUploadByBatchRequest 批量上传请求体
+     * @param loginUser                   登录用户,用于获取长传者信息
+     * @return 成功创建的图片数
+     */
+    int uploadPictureByBatch(
+            PictureUploadByBatchRequest pictureUploadByBatchRequest,
+            User loginUser
+    );
+
 }

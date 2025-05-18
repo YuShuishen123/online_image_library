@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import org.jetbrains.annotations.NotNull;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +51,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     implements PictureService {
 
     @Resource
-    private FileUploadUtil fileUploadUti;
+    private FileUploadUtil fileUploadUtil;
     @Resource
     private UserService userService;
     @Resource
@@ -93,7 +94,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
 
         // 4. 文件上传
-        UploadPictureResult uploadResult = fileUploadUti.uploadPicture(multipartFile, uploadPathPrefix);
+        UploadPictureResult uploadResult = fileUploadUtil.uploadPicture(multipartFile, uploadPathPrefix);
 
         return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, oldPictureUrl);
     }
@@ -124,12 +125,68 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             picture = new Picture();
             picture.setCreateTime(new Date());
         }
-
+        if (StringUtils.isNotBlank(pictureUploadRequest.getName())) {
+            picture.setName(pictureUploadRequest.getName());
+        }
         // 4. 文件上传
-        UploadPictureResult uploadResult = fileUploadUti.uploadPictureByUrl(fileurl, uploadPathPrefix);
+        UploadPictureResult uploadResult = fileUploadUtil.uploadPictureByUrl(fileurl, uploadPathPrefix);
 
         return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, null);
     }
+
+    @Override
+    public int uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+        // 参数校验
+        fileUploadUtil.validateBatchUploadParams(pictureUploadByBatchRequest);
+
+        // 获取并解析网页内容
+        Document document = fileUploadUtil.fetchAndParseWebPage(pictureUploadByBatchRequest.getSearchText());
+
+        // 提取图片元素
+        List<FileUploadUtil.ImageData> imageDataList = fileUploadUtil.extractImageData(document);
+
+        // 上传图片
+        return uploadImages(imageDataList, pictureUploadByBatchRequest.getCount(), loginUser);
+    }
+
+
+    /**
+     * 上传图片
+     *
+     * @param imageDataList 图片数据列表
+     * @param maxCount      最大上传数量
+     * @param loginUser     登录用户
+     * @return 成功上传的数量
+     */
+    private int uploadImages(List<FileUploadUtil.ImageData> imageDataList, int maxCount, User loginUser) {
+        int uploadSuccessCount = 0;
+        PictureUploadRequest uploadRequest = new PictureUploadRequest();
+
+        for (FileUploadUtil.ImageData imageData : imageDataList) {
+            // 检查是否已达到最大上传数量
+            if (uploadSuccessCount >= maxCount) {
+                break;
+            }
+
+            String fileUrl = imageData.getImageUrl();
+            if (!CharSequenceUtil.isBlank(fileUrl)) {
+                try {
+                    uploadRequest.setName(imageData.getTitle());
+                    PictureVO pictureVO = uploadPictureByUrl(fileUrl, uploadRequest, loginUser);
+                    log.info("图片上传成功, id = {}", pictureVO.getId());
+                    uploadSuccessCount++;
+                } catch (Exception e) {
+                    log.warn("图片上传失败, url: {}", fileUrl, e);
+                }
+            } else {
+                log.info("当前链接为空，已跳过");
+            }
+        }
+        log.info("图片上传完成: 成功 {} 张", uploadSuccessCount);
+        return uploadSuccessCount;
+    }
+
+
 
 
 
@@ -140,7 +197,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                                          boolean isUpdate,
                                          String oldPictureUrl) {
         // 映射字段
-        picture.setName(uploadResult.getPicName());
+        if (StringUtils.isNotBlank(picture.getName())) {
+            picture.setName(picture.getName());
+        } else {
+            picture.setName(uploadResult.getPicName());
+        }
         picture.setUrl(uploadResult.getUrl());
         picture.setPicSize(uploadResult.getPicSize());
         picture.setPicWidth(uploadResult.getPicWidth());

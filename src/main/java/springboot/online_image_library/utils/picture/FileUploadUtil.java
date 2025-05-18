@@ -6,7 +6,12 @@ import cn.hutool.core.util.NumberUtil;
 import cn.hutool.http.*;
 import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.config.CosClientConfig;
@@ -15,6 +20,7 @@ import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
 import springboot.online_image_library.manager.CosManager;
 import springboot.online_image_library.modle.BO.UploadPictureResult;
+import springboot.online_image_library.modle.dto.request.picture.PictureUploadByBatchRequest;
 
 import javax.annotation.Resource;
 import java.io.File;
@@ -23,10 +29,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -133,9 +136,17 @@ public class FileUploadUtil {
 
         // 获取文件扩展名
         String fileExtension = FileUtil.getSuffix(fileurl);
+        log.info("fileExtension:{}", fileExtension);
         String originalFilename = fileurl.substring(fileurl.lastIndexOf("/") + 1);
+        // 处理扩展名：如果没有扩展名或不是标准图片格式，则添加JPEG
+        if (fileExtension.isEmpty() || !isImageExtension(fileExtension)) {
+            fileExtension = "jpeg";
+        }
+
         String uniqueFileName = UUID.randomUUID() + "." + fileExtension;
+
         String filePath = String.format("%s/%s", basePath, uniqueFileName);
+
 
         // 下载图片到临时文件
         File tempFile = null;
@@ -161,7 +172,6 @@ public class FileUploadUtil {
             result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
             result.setPicSize(fileSize);
             result.setUrl(cosClientConfig.getHost() + "/" + filePath);
-
             return result;
         } catch (Exception ex) {
             log.error("URL图片上传失败: {}", fileurl, ex);
@@ -169,6 +179,21 @@ public class FileUploadUtil {
         } finally {
             deleteTempFile(tempFile);
         }
+    }
+
+
+    /**
+     * 检查是否是图片扩展名
+     *
+     * @param ext 文件扩展名
+     * @return 是否是图片格式
+     */
+    private boolean isImageExtension(String ext) {
+        if (ext == null || ext.isEmpty()) {
+            return false;
+        }
+        String[] imageExtensions = {"jpg", "jpeg", "png", "gif", "bmp", "webp"};
+        return Arrays.asList(imageExtensions).contains(ext.toLowerCase());
     }
 
 
@@ -205,16 +230,9 @@ public class FileUploadUtil {
         // 校验url协议
         ThrowUtils.throwIf(!fileurl.startsWith("http://") && !fileurl.startsWith("https://"),
                 ErrorCode.PARAMS_ERROR,"文件url协议错误");
-        // 校验url后缀, 图片格式校验
-        final List<String> allowFormatList = Arrays.asList("jepg", "jpg", "png", "webp", "gif");
-        // 获取后缀
-        String fileSuffix = FileUtil.getSuffix(fileurl);
-        // 判断是否允许,忽略大小写
-        ThrowUtils.throwIf(!allowFormatList.contains(fileSuffix.toLowerCase()),ErrorCode.PARAMS_ERROR,"文件类型错误");
         // 校验url是否包含点号
         ThrowUtils.throwIf(!fileurl.contains("."),ErrorCode.PARAMS_ERROR,"文件url协议不支持");
-
-        // 发送head请求,通过返回的请求头判断url的具体信息,以免直接下载图片内容,消耗服务器流量
+//         发送head请求,通过返回的请求头判断url的具体信息,以免直接下载图片内容,消耗服务器流量
         HttpResponse response = null;
         try{
             // 创建http头请求
@@ -259,6 +277,119 @@ public class FileUploadUtil {
             // 文件不存在可视为删除成功
         } catch (IOException e) {
             log.error("删除临时文件失败: {}", file.getAbsolutePath(), e);
+        }
+    }
+
+
+    /**
+     * 校验批量上传参数
+     */
+    public void validateBatchUploadParams(PictureUploadByBatchRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        }
+        if (request.getCount() == null || request.getCount() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "数量必须大于0");
+        }
+        if (request.getCount() > 30) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "最多30条");
+        }
+        if (CharSequenceUtil.isBlank(request.getSearchText())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "搜索内容不能为空");
+        }
+    }
+
+    /**
+     * 获取并解析网页内容
+     */
+    public Document fetchAndParseWebPage(String searchText) {
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        try {
+            return Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("获取页面失败, url: {}", fetchUrl, e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+        }
+    }
+
+    /**
+     * 从网页中提取图片数据（URL和标题）
+     *
+     * @param document 网页文档对象
+     * @return 包含图片数据的列表
+     */
+    public List<ImageData> extractImageData(Document document) {
+        if (document == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "网页内容为空");
+        }
+
+        Element div = document.getElementsByClass("dgControl").first();
+        if (div == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+        }
+
+        List<ImageData> result = new ArrayList<>();
+
+        // 选择所有图片容器
+        Elements imageContainers = div.select("div.iuscp.isv");
+
+        for (Element container : imageContainers) {
+            // 提取图片URL
+            Element imgElement = container.selectFirst("img.mimg");
+            String imageUrl = imgElement != null ? imgElement.attr("src") : "";
+
+            // 提取标题 - 从infnmpt下的a标签的title属性
+            Element titleElement = container.selectFirst("div.infnmpt a");
+            String title = titleElement != null ? titleElement.attr("title") : "";
+
+            // 如果title属性为空，尝试获取文本内容
+            if (title.isEmpty() && titleElement != null) {
+                title = titleElement.text();
+            }
+
+            result.add(new ImageData(imageUrl, title));
+        }
+
+        return result;
+    }
+
+    /**
+     * 保留原有方法，仅提取图片元素
+     */
+    public Elements extractImageElements(Document document) {
+        if (document == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "网页内容为空");
+        }
+
+        Element div = document.getElementsByClass("dgControl").first();
+        if (div == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+        }
+
+        return div.select("img.mimg");
+    }
+
+    /**
+     * 处理图片URL
+     */
+    public String processImageUrl(String originalUrl) {
+        if (CharSequenceUtil.isBlank(originalUrl)) {
+            return originalUrl;
+        }
+
+        int questionMarkIndex = originalUrl.indexOf("?");
+        return questionMarkIndex > -1 ? originalUrl.substring(0, questionMarkIndex) : originalUrl;
+    }
+
+    // 用于存储抓取到的图片数据的简单类
+    @Data
+    public static class ImageData {
+        private String imageUrl;
+        private String title;
+
+        public ImageData(String imageUrl, String title) {
+            this.imageUrl = imageUrl;
+            this.title = title;
         }
     }
 

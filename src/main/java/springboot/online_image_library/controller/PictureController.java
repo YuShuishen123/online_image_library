@@ -66,6 +66,12 @@ public class PictureController {
     /**
      * 根据url上传图片
      */
+    @ApiOperation(
+            value = "根据url上传图片",
+            notes = "用于图片上传功能,限制图片最大为8MB",
+            httpMethod = "POST",
+            response = BaseResponse.class
+    )
     @PostMapping("/upload/url")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<PictureVO> uploadPictureByUrl(
@@ -76,6 +82,24 @@ public class PictureController {
         return ResultUtils.success(pictureService.uploadPictureByUrl(fileurl,pictureUploadRequest,loginUser));
     }
 
+
+    @ApiOperation(
+            value = "批量抓取图片",
+            notes = "用于批量抓取图片功能",
+            httpMethod = "POST",
+            response = BaseResponse.class
+    )
+    @PostMapping("/upload/batch")
+    @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
+    public BaseResponse<Integer> uploadPictureByBatch(
+            @RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
+            HttpServletRequest request
+    ) {
+        ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        int uploadCount = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
+        return ResultUtils.success(uploadCount);
+    }
 
     /**
      * 删除图片
