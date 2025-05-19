@@ -22,6 +22,7 @@ import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 import static springboot.online_image_library.exception.ThrowUtils.throwIf;
@@ -61,11 +62,11 @@ public class UserController {
             response = BaseResponse.class
     )
     @PostMapping("/login")
-    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
+        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response);
         return ResultUtils.success(loginUserVO);
     }
 
@@ -87,6 +88,7 @@ public class UserController {
             httpMethod = "POST",
             response = BaseResponse.class
     )
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @PostMapping("/logout")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         throwIf(request == null, ErrorCode.PARAMS_ERROR);

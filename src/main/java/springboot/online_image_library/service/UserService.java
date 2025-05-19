@@ -8,6 +8,7 @@ import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 /**
@@ -56,7 +57,7 @@ public interface UserService extends IService<User> {
      * @param request 请求
      * @return 登陆用户视图
      */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response);
 
     /**
      * 获取当前登录用户

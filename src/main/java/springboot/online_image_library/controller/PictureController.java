@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.annotation.AuthCheck;
@@ -43,6 +44,10 @@ public class PictureController {
     private PictureService pictureService;
     @Resource
     private UserService userService;
+    private static final String TAG_LIST_KEY = "picture:tag_list";
+    private static final String CATEGORY_LIST_KEY = "picture:category_list";
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
 
     /**
      * 上传图片（可重新上传）
@@ -192,7 +197,7 @@ public class PictureController {
             response = BaseResponse.class
     )
     @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Page<PictureVO>> listPictureVoByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
         // 提取分页相关信息
         long current = pictureQueryRequest.getCurrent();
@@ -213,12 +218,33 @@ public class PictureController {
             response = BaseResponse.class
     )
     @GetMapping("/tag_category")
-    public BaseResponse<PictureTagCategory> listPictureTagCategory(){
+    public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();
-        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
-        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报");
-        pictureTagCategory.setTagList(tagList);
-        pictureTagCategory.setCategoryList(categoryList);
+
+        // 尝试从 Redis 获取 tagList
+        List<String> tagList = redisTemplate.opsForList().range(TAG_LIST_KEY, 0, -1);
+        if (tagList != null && !tagList.isEmpty()) {
+            log.info("从 Redis 获取 tagList 成功");
+            pictureTagCategory.setTagList(tagList);
+        } else {
+            // 回退到原逻辑
+            tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
+            // 存入 Redis
+            redisTemplate.opsForList().rightPushAll(TAG_LIST_KEY, tagList);
+            pictureTagCategory.setTagList(tagList);
+        }
+        // 尝试从 Redis 获取 categoryList
+        List<String> categoryList = redisTemplate.opsForList().range(CATEGORY_LIST_KEY, 0, -1);
+        if (categoryList != null && !categoryList.isEmpty()) {
+            log.info("从 Redis 获取 categoryList 成功");
+            pictureTagCategory.setCategoryList(categoryList);
+        } else {
+            // 回退到原逻辑
+            categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报");
+            // 存入 Redis
+            redisTemplate.opsForList().rightPushAll(CATEGORY_LIST_KEY, categoryList);
+            pictureTagCategory.setCategoryList(categoryList);
+        }
         return ResultUtils.success(pictureTagCategory);
     }
 
