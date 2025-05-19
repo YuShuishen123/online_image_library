@@ -8,10 +8,10 @@ import com.qcloud.cos.model.PutObjectResult;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.config.CosClientConfig;
@@ -136,7 +136,6 @@ public class FileUploadUtil {
 
         // 获取文件扩展名
         String fileExtension = FileUtil.getSuffix(fileurl);
-        log.info("fileExtension:{}", fileExtension);
         String originalFilename = fileurl.substring(fileurl.lastIndexOf("/") + 1);
         // 处理扩展名：如果没有扩展名或不是标准图片格式，则添加JPEG
         if (fileExtension.isEmpty() || !isImageExtension(fileExtension)) {
@@ -312,9 +311,9 @@ public class FileUploadUtil {
         }
     }
 
+
     /**
      * 从网页中提取图片数据（URL和标题）
-     *
      * @param document 网页文档对象
      * @return 包含图片数据的列表
      */
@@ -330,43 +329,43 @@ public class FileUploadUtil {
 
         List<ImageData> result = new ArrayList<>();
 
-        // 选择所有图片容器
-        Elements imageContainers = div.select("div.iuscp.isv");
-
-        for (Element container : imageContainers) {
-            // 提取图片URL
-            Element imgElement = container.selectFirst("img.mimg");
-            String imageUrl = imgElement != null ? imgElement.attr("src") : "";
-
-            // 提取标题 - 从infnmpt下的a标签的title属性
-            Element titleElement = container.selectFirst("div.infnmpt a");
-            String title = titleElement != null ? titleElement.attr("title") : "";
-
-            // 如果title属性为空，尝试获取文本内容
-            if (title.isEmpty() && titleElement != null) {
-                title = titleElement.text();
+        div.select("div.iuscp.isv").forEach(container -> {
+            Element linkElement = container.selectFirst("a.iusc");
+            if (linkElement != null) {
+                processImageElement(linkElement, result);
             }
-
-            result.add(new ImageData(imageUrl, title));
-        }
+        });
 
         return result;
     }
 
     /**
-     * 保留原有方法，仅提取图片元素
+     * 处理json字符串,提取图片数据
+     * @param linkElement
+     * @param result
      */
-    public Elements extractImageElements(Document document) {
-        if (document == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "网页内容为空");
+    private void processImageElement(Element linkElement, List<ImageData> result) {
+        String jsonStr = linkElement.attr("m");
+        if (jsonStr.isEmpty()) {
+            return;
         }
 
-        Element div = document.getElementsByClass("dgControl").first();
-        if (div == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
-        }
+        try {
+            JSONObject jsonObj = new JSONObject(jsonStr);
+            String imageUrl = jsonObj.has("murl") ? jsonObj.getString("murl") : "";
+            if (imageUrl.isEmpty()) {
+                return;
+            }
 
-        return div.select("img.mimg");
+            String title = jsonObj.has("t") ? jsonObj.getString("t") : "";
+            if (title.isEmpty() && jsonObj.has("desc")) {
+                title = jsonObj.getString("desc");
+            }
+
+            result.add(new ImageData(imageUrl, title));
+        } catch (Exception e) {
+            log.warn("解析图片JSON数据失败: {}", jsonStr, e);
+        }
     }
 
     /**

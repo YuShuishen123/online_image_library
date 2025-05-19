@@ -150,6 +150,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 提取图片元素
         List<FileUploadUtil.ImageData> imageDataList = fileUploadUtil.extractImageData(document);
 
+        log.info(imageDataList.toString());
+
         // 上传图片
         return uploadImages(imageDataList, pictureUploadByBatchRequest.getCount(), loginUser);
     }
@@ -179,7 +181,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                     uploadRequest.setName(imageData.getTitle());
                     PictureVO pictureVO = uploadPictureByUrl(fileUrl, uploadRequest, loginUser);
                     pictureVOList.add(pictureVO);
-                    log.info("图片上传成功, id = {}", pictureVO.getId());
+                    log.info("第{}张图片上传成功, id = {},url = {}", uploadSuccessCount + 1, pictureVO.getId(), pictureVO.getUrl());
                     uploadSuccessCount++;
                 } catch (Exception e) {
                     log.warn("图片上传失败, url: {}", fileUrl, e);

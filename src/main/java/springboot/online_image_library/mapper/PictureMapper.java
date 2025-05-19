@@ -1,6 +1,8 @@
 package springboot.online_image_library.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
 import springboot.online_image_library.modle.entiry.Picture;
 
 /**
@@ -9,6 +11,8 @@ import springboot.online_image_library.modle.entiry.Picture;
 * @createDate 2025-05-11 21:29:53
 * @Entity springboot.online_image_library.modle.entiry.Picture
 */
+@Mapper
+@Repository
 public interface PictureMapper extends BaseMapper<Picture> {
 
 }
