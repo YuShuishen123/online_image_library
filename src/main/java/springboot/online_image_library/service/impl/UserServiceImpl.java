@@ -4,18 +4,17 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
+import springboot.online_image_library.manager.CacheClient;
 import springboot.online_image_library.mapper.UserMapper;
 import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
 import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
@@ -27,10 +26,9 @@ import springboot.online_image_library.service.UserService;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static springboot.online_image_library.exception.ThrowUtils.throwIf;
 
@@ -50,14 +48,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private static final String USER_LOGIN_STATE = "user:login:state:";
     private static final String SESSION_TOKEN = "session_token";
     // 登录状态过期时间，30分钟
-    private static final long LOGIN_EXPIRE_TIME = 7 * 24 * 60 * (long) 60;
+    private static final long LOGIN_EXPIRE_TIME = 24 * 60 * (long) 60;
     private static final String USER_ACCOUNT_NICKNAME = "userAccount";
 
-    // 创建一个RedisTemplate对象
-    private final StringRedisTemplate stringRedisTemplate;
+    // 创建一个CacheClient对象
+    CacheClient cacheClient;
 
-    public UserServiceImpl(StringRedisTemplate stringRedisTemplate) {
-        this.stringRedisTemplate = stringRedisTemplate;
+    public UserServiceImpl(CacheClient cacheClient) {
+        this.cacheClient = cacheClient;
     }
 
 
@@ -98,7 +96,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return new ArrayList<>();
         }
         // 使用stream流获取userVOList
-        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+        return userList.stream().map(this::getUserVO).toList();
     }
 
 
@@ -138,86 +136,68 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response) {
-        // 1. 参数校验
         if (CharSequenceUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         checkAccountAndPassword(userAccount, userPassword);
 
-        // 2. 查询用户
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(USER_ACCOUNT_NICKNAME, userAccount);
         User user = this.baseMapper.selectOne(queryWrapper);
 
-        // 3. 验证用户名和密码
         if (user == null || !getEncryptPassword(userPassword).equals(user.getUserPassword())) {
             log.info("user login failed");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
 
-        // 4. 存储登录状态到 Redis
         String token = IdUtil.simpleUUID();
-        // 生成唯一会话令牌
         String redisKey = USER_LOGIN_STATE + token;
-        String userJson = JSONUtil.toJsonStr(user);
-        // 序列化用户对象
-        stringRedisTemplate.opsForValue().set(redisKey, userJson, LOGIN_EXPIRE_TIME, TimeUnit.SECONDS);
 
-        // 5. 将令牌写入 Cookie
+        // 回填缓存
+        cacheClient.update(redisKey, user, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
+
+        // 写 Cookie
         Cookie cookie = new Cookie(SESSION_TOKEN, token);
         cookie.setPath("/");
         cookie.setMaxAge((int) LOGIN_EXPIRE_TIME);
         response.addCookie(cookie);
 
-        // 6. 返回登录用户信息
         return this.getLoginUserVO(user);
     }
 
+
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        // 1. 从 Cookie 获取会话令牌
         String token = getSessionToken(request);
-
-        // 2. 令牌为空，直接返回未登录
         if (token == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
 
-        // 3. 从 Redis 获取用户信息
         String redisKey = USER_LOGIN_STATE + token;
-        String userJson = stringRedisTemplate.opsForValue().get(redisKey);
-        if (userJson == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
 
-        // 4. 反序列化用户信息
-        User currentUser = JSONUtil.toBean(userJson, User.class);
+        // 查询缓存（本地 -> Redis -> DB）
+        // 登录状态丢失，回调直接抛异常
+        // 登录状态丢失，回调直接抛异常
+        return cacheClient.queryWithCache(
+                redisKey,
+                User.class,
+                Duration.ofSeconds(LOGIN_EXPIRE_TIME),
+                () -> {
+                    // 登录状态丢失，回调直接抛异常
+                    throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+                }
+        );
 
-        // 5. 从数据库查询最新用户信息（可选，视性能需求）
-        currentUser = this.getById(currentUser.getId());
-        if (currentUser == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        // 6. 更新 Redis 中的用户信息和过期时间
-        userJson = JSONUtil.toJsonStr(currentUser);
-        stringRedisTemplate.opsForValue().set(redisKey, userJson, LOGIN_EXPIRE_TIME, TimeUnit.SECONDS);
-
-        return currentUser;
     }
+
 
     @Override
     public boolean userLogout(HttpServletRequest request) {
-        // 1. 从 Cookie 获取会话令牌
         String token = getSessionToken(request);
-
-        // 2. 删除 Redis 中的登录状态
         if (token != null) {
             String redisKey = USER_LOGIN_STATE + token;
-            stringRedisTemplate.delete(redisKey);
+            cacheClient.invalidate(redisKey);
         }
-
-        // 3. 清理 Cookie（可选，客户端会自动处理过期）
         return true;
     }
 

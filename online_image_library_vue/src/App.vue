@@ -1,8 +1,6 @@
 <template>
-  // 引入 Ant Design Vue 的配置提供器
   <a-config-provider :locale="appLocale">
     <div id="app">
-      // 引入基本布局组件
       <BasicLayout />
     </div>
   </a-config-provider>
@@ -26,5 +24,4 @@ healthUsingGet().then((res) => {
   // 处理 API 返回的数据
   console.log(res)
 })
-
 </script>

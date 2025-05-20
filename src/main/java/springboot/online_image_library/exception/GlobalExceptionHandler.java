@@ -34,6 +34,12 @@ public class GlobalExceptionHandler {
         log.error("SQLException", e);
         return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "数据库错误");
     }
+
+    @ExceptionHandler(CacheException.class)
+    public BaseResponse<?> cacheExceptionHandler(CacheException e) {
+        log.error("CacheException", e);
+        return ResultUtils.error(e.getCode(), e.getMessage());
+    }
 }
 
 

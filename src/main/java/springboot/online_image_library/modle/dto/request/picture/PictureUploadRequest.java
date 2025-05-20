@@ -2,6 +2,7 @@ package springboot.online_image_library.modle.dto.request.picture;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -21,5 +22,6 @@ public class PictureUploadRequest implements Serializable {
      */
     private String name;
 
+    @Serial
     private static final long serialVersionUID = 1L;  
 }

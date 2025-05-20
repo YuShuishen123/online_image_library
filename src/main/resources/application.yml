@@ -5,6 +5,11 @@ server:
 spring:
   application:
     name: online_image_library
+  #    本地缓存配置(已使用配置类进行配置,此处注释)
+  #  cache:
+  #    type: caffeine
+  #    caffeine:
+  #      spec: maximumSize=10000, expireAfterWrite=60m
 #    数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

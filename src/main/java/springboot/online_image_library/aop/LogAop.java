@@ -48,12 +48,12 @@ public class LogAop {
         log.info("======= 请求开始 =======");
         if (request != null) {
             log.info("请求地址: {}", request.getRequestURL().toString());
-            log.info("HTTP方法: {}", request.getMethod());
+            log.debug("HTTP方法: {}", request.getMethod());
         }
         log.info("类方法: {}.{}",
                 method.getDeclaringClass().getName(),
                 method.getName());
-        log.info("方法参数: {}", Arrays.toString(joinPoint.getArgs()));
+        log.debug("方法参数: {}", Arrays.toString(joinPoint.getArgs()));
 
         // 记录方法执行时间
         long startTime = System.currentTimeMillis();
@@ -65,7 +65,7 @@ public class LogAop {
 
             // 记录返回结果和执行时间
             log.info("方法返回: {}", result);
-            log.info("执行耗时: {} ms", endTime - startTime);
+            log.debug("执行耗时: {} ms", endTime - startTime);
         } catch (Exception e) {
             log.error("方法异常: {}", e.getMessage());
             throw e;

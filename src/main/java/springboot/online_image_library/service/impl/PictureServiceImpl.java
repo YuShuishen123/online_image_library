@@ -10,7 +10,6 @@ import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import lombok.var;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.BeanUtils;
@@ -335,7 +334,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 创建一个记录类型为PictureVO类型的额page对象,同时把页码和大小以及总数先设置好
         Page<PictureVO> pictureVoPage = new Page<>(picturePage.getCurrent(), picturePage.getSize(), picturePage.getTotal());
         // 把对象列表封装为VO列表
-        List<PictureVO> pictureVOList = pictureList.stream().map(PictureVO::objToVo).collect(Collectors.toList());
+        List<PictureVO> pictureVOList = pictureList.stream().map(PictureVO::objToVo).toList();
         // 1.关联查询用户信息
         Set<Long> userIdset = pictureList.stream().map(Picture::getUserId).collect(Collectors.toSet());
         Map<Long,List<User>> userIdUserListMap = userService.listByIds(userIdset).stream().collect(Collectors.groupingBy(User::getId));
@@ -382,7 +381,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         String url = oldPicture.getUrl();
         // 获取当前登录用户
-        var loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request);
 
         // 仅本人或者管理员可以删除
         if (!oldPicture.getUserId().equals(loginUser.getId()) &&!userService.isAdmin(loginUser)) {
@@ -407,15 +406,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         List<String> tags = null;
         User loginUser = userService.getLoginUser(httpServletRequest);
 
-        if (request instanceof PictureEditRequest) {
-            PictureEditRequest editRequest = (PictureEditRequest) request;
+        if (request instanceof PictureEditRequest editRequest) {
             id = editRequest.getId();
             name = editRequest.getName();
             introduction = editRequest.getIntroduction();
             category = editRequest.getCategory();
             tags = editRequest.getTags();
-        } else if (request instanceof PictureUpdateRequest) {
-            PictureUpdateRequest updateRequest = (PictureUpdateRequest) request;
+        } else if (request instanceof PictureUpdateRequest updateRequest) {
             id = updateRequest.getId();
             name = updateRequest.getName();
             introduction = updateRequest.getIntroduction();
