@@ -14,6 +14,7 @@ import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
+import springboot.online_image_library.manager.CacheClient;
 import springboot.online_image_library.modle.BO.PictureTagCategory;
 import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
@@ -25,6 +26,7 @@ import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -46,8 +48,12 @@ public class PictureController {
     private UserService userService;
     private static final String TAG_LIST_KEY = "picture:tag_list";
     private static final String CATEGORY_LIST_KEY = "picture:category_list";
+    private static final String PICTUREVO_QUERY_KEY = "picture:picturevo_query_list:";
+    private static final Long TTL_MINUTES = 24 * 60 * (long) 60;
     @Resource
     private RedisTemplate<String, String> redisTemplate;
+    @Resource
+    CacheClient cacheClient;
 
     /**
      * 上传图片（可重新上传）
@@ -202,14 +208,35 @@ public class PictureController {
         // 提取分页相关信息
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
+
         // 限制爬虫,限制每次最多获取20条数据
         ThrowUtils.throwIf(size > 20,ErrorCode.PARAMS_ERROR);
+
         // 普通用户只能查看审核状态为已通过的图片(强制)
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-        // 建立分页对象
-        Page<Picture> picturePage = pictureService.page(new Page<>(current,size),pictureService.getQueryWrapper(pictureQueryRequest));
-        return ResultUtils.success(pictureService.getPictureVoPage(picturePage));
+
+        // 根据pictureQueryRequest,生成一个唯一的key
+        String cacheKey = PICTUREVO_QUERY_KEY + pictureQueryRequest.generateCacheKey();
+
+        // 使用多级缓存管理器查询数据
+        @SuppressWarnings("unchecked")
+        Page<PictureVO> pictureVoPage = cacheClient.queryWithCache(
+                cacheKey,
+                Page.class,
+                Duration.ofSeconds(TTL_MINUTES),
+                () -> {
+                    // 数据库查询逻辑
+                    Page<Picture> picturePage = pictureService.page(
+                            new Page<>(current, size),
+                            pictureService.getQueryWrapper(pictureQueryRequest)
+                    );
+                    return pictureService.getPictureVoPage(picturePage);
+                }
+        );
+
+        return ResultUtils.success(pictureVoPage);
     }
+
 
     @ApiOperation(
             value = "获取图片标签和分类",

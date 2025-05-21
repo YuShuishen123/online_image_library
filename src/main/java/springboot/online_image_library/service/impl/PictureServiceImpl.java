@@ -59,6 +59,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private FileDeleteUtil fileDeleteUtil;
 
 
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public PictureVO uploadPicture(MultipartFile multipartFile,
@@ -210,6 +211,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             picture.setName(uploadResult.getPicName());
         }
         picture.setUrl(uploadResult.getUrl());
+        picture.setThumbnailUrl(uploadResult.getThumbnailUrl());
         picture.setPicSize(uploadResult.getPicSize());
         picture.setPicWidth(uploadResult.getPicWidth());
         picture.setPicHeight(uploadResult.getPicHeight());
@@ -331,6 +333,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     public Page<PictureVO> getPictureVoPage(@NotNull Page<Picture> picturePage) {
         // 先获取到分页中的数据
         List<Picture> pictureList = picturePage.getRecords();
+        // 判断pictureList是否为空
+        if (CollUtil.isEmpty(pictureList)) {
+            // 为空则直接返回空
+            return new Page<>();
+        }
         // 创建一个记录类型为PictureVO类型的额page对象,同时把页码和大小以及总数先设置好
         Page<PictureVO> pictureVoPage = new Page<>(picturePage.getCurrent(), picturePage.getSize(), picturePage.getTotal());
         // 把对象列表封装为VO列表

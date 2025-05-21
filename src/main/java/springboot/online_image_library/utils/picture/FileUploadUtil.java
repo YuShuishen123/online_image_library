@@ -1,11 +1,14 @@
 package springboot.online_image_library.utils.picture;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.http.*;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -84,34 +87,19 @@ public class FileUploadUtil {
         }
     }
 
-    // 上下文对象，封装上传所需参数
-    private static class FileUploadContext {
-        final String filePath;
-        final File tempFile;
-        final String originalFilename;
-        final MultipartFile multipartFile;
-
-        public FileUploadContext(String filePath, File tempFile, String originalFilename, MultipartFile multipartFile) {
-            this.filePath = filePath;
-            this.tempFile = tempFile;
-            this.originalFilename = originalFilename;
-            this.multipartFile = multipartFile;
-        }
-    }
-
-    // 重构后的文件上传方法
-    public String uploadFile(MultipartFile multipartFile, String basePath) {
-        return handleFileUpload(multipartFile, basePath, context -> {
-            cosManager.putObject(context.filePath, context.tempFile);
-            return context.filePath;
-        });
-    }
-
     // 重构后的图片上传方法
     public UploadPictureResult uploadPicture(MultipartFile multipartFile, String basePath) {
         return handleFileUpload(multipartFile, basePath, context -> {
             PutObjectResult putObjectResult = cosManager.putPictureObject(context.filePath, context.tempFile);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            String originalFilename = context.originalFilename;
+            if (CollUtil.isNotEmpty(objectList)) {
+                CIObject compressedCiObject = objectList.get(0);
+                CIObject thumbnailCiObject = objectList.get(1);
+                return buildResult(originalFilename, compressedCiObject, thumbnailCiObject);
+            }
             UploadPictureResult result = new UploadPictureResult();
             result.setPicName(context.originalFilename);
             result.setPicFormat(imageInfo.getFormat());
@@ -122,6 +110,32 @@ public class FileUploadUtil {
             result.setUrl(cosClientConfig.getHost() + "/" +context.filePath);
             return result;
         });
+    }
+
+    // 重构后的文件上传方法
+    public String uploadFile(MultipartFile multipartFile, String basePath) {
+        return handleFileUpload(multipartFile, basePath, context -> {
+            cosManager.putObject(context.filePath, context.tempFile);
+            return context.filePath;
+        });
+    }
+
+    // 构建缩略图上传结果
+    private UploadPictureResult buildResult(String originFilename, CIObject compressedCiObject, CIObject thumbnailCiObject) {
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
+        int picWidth = compressedCiObject.getWidth();
+        int picHeight = compressedCiObject.getHeight();
+        double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
+        uploadPictureResult.setPicName(FileUtil.mainName(originFilename));
+        uploadPictureResult.setPicWidth(picWidth);
+        uploadPictureResult.setPicHeight(picHeight);
+        uploadPictureResult.setPicScale(picScale);
+        uploadPictureResult.setPicFormat(compressedCiObject.getFormat());
+        uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
+        uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
+        // 设置图片为压缩后的地址
+        uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
+        return uploadPictureResult;
     }
 
     /**
@@ -161,7 +175,13 @@ public class FileUploadUtil {
             // 上传到对象存储
             PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, tempFile);
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
-
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            if (CollUtil.isNotEmpty(objectList)) {
+                CIObject compressedCiObject = objectList.get(0);
+                CIObject thumbnailCiObject = objectList.get(1);
+                return buildResult(originalFilename, compressedCiObject, thumbnailCiObject);
+            }
             // 构建返回结果
             UploadPictureResult result = new UploadPictureResult();
             result.setPicName(originalFilename);
@@ -178,6 +198,13 @@ public class FileUploadUtil {
         } finally {
             deleteTempFile(tempFile);
         }
+    }
+
+    // 上下文对象，封装上传所需参数
+    private record FileUploadContext(String filePath,
+                                     File tempFile,
+                                     String originalFilename,
+                                     MultipartFile multipartFile) {
     }
 
 
@@ -366,18 +393,6 @@ public class FileUploadUtil {
         } catch (Exception e) {
             log.warn("解析图片JSON数据失败: {}", jsonStr, e);
         }
-    }
-
-    /**
-     * 处理图片URL
-     */
-    public String processImageUrl(String originalUrl) {
-        if (CharSequenceUtil.isBlank(originalUrl)) {
-            return originalUrl;
-        }
-
-        int questionMarkIndex = originalUrl.indexOf("?");
-        return questionMarkIndex > -1 ? originalUrl.substring(0, questionMarkIndex) : originalUrl;
     }
 
     // 用于存储抓取到的图片数据的简单类
