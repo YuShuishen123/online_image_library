@@ -31,7 +31,7 @@ import static springboot.online_image_library.exception.ThrowUtils.throwIf;
  * 系统基础接口
  * @author Yu'S'hui'shen
  */
-@Api(tags = "用户接口")
+@Api(tags = "UserController")
 @RestController
 @RequestMapping("/user")
 public class UserController {

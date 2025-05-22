@@ -1,6 +1,6 @@
 <template>
   <div id="basciLayout">
-    <a-layout style="height: 100vh">
+    <a-layout class="main-layout">
       <a-layout-header :style="headerStyle" class="header">
         <GlobalHeader />
       </a-layout-header>
@@ -44,13 +44,38 @@ const headerStyle = {
 // 这里可以定义您的样式变量
 const contentStyle = {
   padding: '24px',
-  background: '#fff',
   minHeight: '280px',
 }
 </script>
 
 <style scoped>
+html,
+body,
+#app,
+#basciLayout,
+.main-layout {
+  height: 100%;
+  min-height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.header {
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
 .footer {
+  flex-shrink: 0;
   text-align: center;
   padding: 16px 50px;
   background: #f5f5f5;

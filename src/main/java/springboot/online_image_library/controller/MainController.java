@@ -27,7 +27,7 @@ import java.util.Objects;
  * @author Yu'S'hui'shen
  */
 @Slf4j
-@Api(tags = "系统调试", value = "系统基础功能接口")
+@Api(tags = "MainController", value = "系统基础功能接口")
 @RestController
 @RequestMapping("/")
 public class MainController {

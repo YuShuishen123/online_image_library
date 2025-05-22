@@ -9,7 +9,7 @@
 <script setup lang="ts">
 // 引入 Vue 和 Ant Design Vue
 import BasicLayout from './layouts/BasciLayout.vue'
-import {healthUsingGet} from './api/system'
+import { healthUsingGet } from './api/mainController'
 import zhCN from 'ant-design-vue/es/locale/zh_CN' // 引入 ant-design-vue 的中文语言包
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn' // 引入 dayjs 的中文语言包

@@ -21,7 +21,7 @@ import java.io.IOException;
  * @date 2025/5/11
  * @description 文件管理接口
  */
-@Api(tags = "文件管理接口")
+@Api(tags = "FileController")
 @Slf4j
 @RestController
 @RequestMapping("/file")

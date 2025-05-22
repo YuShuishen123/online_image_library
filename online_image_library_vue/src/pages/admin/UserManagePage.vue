@@ -18,7 +18,7 @@
       @change="handleTableChange">
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userAvatar'">
-          <a-image :src="record.userAvatar" width="32" height="32" />
+          <a-image :src="record.userAvatar" width="20" height="20" />
           <a>
             {{ record.name }}
           </a>

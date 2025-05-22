@@ -33,9 +33,9 @@
 </template>
 
 <script setup lang="ts">
-import {reactive} from 'vue'
-import {userRegisterUsingPost} from '@/api/userController'
-import {message} from 'ant-design-vue'
+import { reactive } from 'vue'
+import { userRegisterUsingPost } from '@/api/userController'
+import { message } from 'ant-design-vue'
 
 const formState = reactive<API.UserRegistRequest>({
   userAccount: '',

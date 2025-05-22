@@ -36,7 +36,7 @@ import java.util.List;
  * @date 2025/5/12
  * @description 图片相关控制器类
  */
-@Api(tags = "图片相关操作")
+@Api(tags = "PictureController")
 @Slf4j
 @RestController
 @RequestMapping("/picture")
@@ -210,7 +210,7 @@ public class PictureController {
         long size = pictureQueryRequest.getPageSize();
 
         // 限制爬虫,限制每次最多获取20条数据
-        ThrowUtils.throwIf(size > 20,ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 24,ErrorCode.PARAMS_ERROR);
 
         // 普通用户只能查看审核状态为已通过的图片(强制)
         pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());

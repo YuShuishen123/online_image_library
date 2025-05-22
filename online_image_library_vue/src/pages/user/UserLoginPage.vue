@@ -27,11 +27,11 @@
 </template>
 
 <script setup lang="ts">
-import {reactive, ref} from 'vue'
-import {userLoginUsingPost} from '@/api/userController'
-import {useLoginUserStore} from '@/stores/useLoginUserStore'
-import {message} from 'ant-design-vue'
-import {useRouter} from 'vue-router' // 添加这行导入
+import { reactive, ref } from 'vue'
+import { userLoginUsingPost } from '@/api/userController'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router' // 添加这行导入
 const loading = ref(false)
 const router = useRouter()  // 添加这行
 const formState = reactive<API.UserLoginRequest>({

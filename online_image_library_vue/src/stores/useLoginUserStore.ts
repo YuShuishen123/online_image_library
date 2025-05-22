@@ -1,6 +1,6 @@
-import {defineStore} from 'pinia'
-import {ref} from 'vue'
-import {getLoginUserUsingGet} from '@/api/userController'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { getLoginUserUsingGet } from '@/api/userController'
 
 export const useLoginUserStore = defineStore('loginUser', () => {
   // 初始化为未登录状态
