@@ -2,6 +2,7 @@ package springboot.online_image_library.modle.dto.request.picture;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
@@ -36,6 +37,7 @@ public class PictureUpdateRequest implements Serializable {
      * 标签  
      */  
     private List<String> tags;
-  
-    private static final long serialVersionUID = 1L;  
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 }

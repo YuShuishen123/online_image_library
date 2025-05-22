@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -32,6 +33,11 @@ public class Picture implements Serializable {
      * 缩略图 url
      */
     private String thumbnailUrl;
+
+
+    @Serial
+    @TableField(exist = false)
+    private static final long serialVersionUID = 1L;
 
     /**
      * 图片名称
@@ -122,8 +128,8 @@ public class Picture implements Serializable {
      * 审核时间
      */
     private Date reviewTime;
-
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+    /**
+     * 原图 url
+     */
+    private String originalImageurl;
 }

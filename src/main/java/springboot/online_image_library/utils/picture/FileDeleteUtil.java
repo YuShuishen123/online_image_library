@@ -1,8 +1,12 @@
 package springboot.online_image_library.utils.picture;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import springboot.online_image_library.manager.CosManager;
+import springboot.online_image_library.mapper.PictureMapper;
+import springboot.online_image_library.modle.entiry.Picture;
 
 import javax.annotation.Resource;
 
@@ -18,8 +22,11 @@ public class FileDeleteUtil {
     @Resource
     private CosManager cosManager;
 
+    @Resource
+    private PictureMapper pictureMapper;
+
     /**
-     * 根据url删除
+     * 云存储删除文件接口
      * @param url 待删除的文件的url
      */
     public boolean deleteFileByUrl(String url) {
@@ -33,5 +40,40 @@ public class FileDeleteUtil {
         String key = url.substring(startIndexKey + 1);
         return cosManager.deleteObject(buketName, key);
     }
+
+
+    /**
+     * 调用云存储删除接口异步删除云端文件
+     *
+     * @param url 待删除的图片url
+     */
+    @Async("imageAsyncExecutor")
+    public void asyncCheckAndDeleteFile(String url) {
+        // 检查数据库中是否有其他图片也采用当前的这个url,如果有则不删除云端,防止其他记录url失效
+        if (pictureMapper.selectCount(new QueryWrapper<Picture>().eq("url", url)) == 0) {
+            long start = System.currentTimeMillis();
+            try {
+                boolean deleteResult = deleteFileByUrl(url);
+                if (!deleteResult) {
+                    // 删除失败，记录错误日志
+                    log.error("异步删除云端文件失败，url: {}", url);
+                }
+            } catch (Exception e) {
+                // 捕获异常，记录详细错误信息
+                log.error("异步删除云端图片异常，url: {}, 异常: {}", url, e.getMessage(), e);
+            } finally {
+                long duration = System.currentTimeMillis() - start;
+                // 记录耗时，超过 1000ms 记录警告
+                log.info("异步云端删除任务耗时: {}ms", duration);
+                if (duration > 1000) {
+                    log.warn("异步云端删除任务耗时过长，url: {}, 耗时: {}ms", url, duration);
+                }
+            }
+
+        } else {
+            log.info("图片url: {}，其他图片正在使用，不进行删除", url);
+        }
+    }
+
 
 }

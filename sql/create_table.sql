@@ -64,6 +64,16 @@ ALTER TABLE picture
     -- 添加新列
     ADD COLUMN thumbnailUrl varchar(512) NULL COMMENT '缩略图 url';
 
+-- 为图片url字段增加索引
+create index idx_picture_url
+    on picture (url);
+
+
+-- 更新图片表字段:  添加 OriginalImageurl 列,用于存放图片的原图地址
+ALTER TABLE picture
+    -- 添加新列
+    ADD COLUMN OriginalImageurl varchar(256) NULL COMMENT '原图 url';
+
 
 
 

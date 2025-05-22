@@ -49,7 +49,7 @@ public class PictureController {
     private static final String TAG_LIST_KEY = "picture:tag_list";
     private static final String CATEGORY_LIST_KEY = "picture:category_list";
     private static final String PICTUREVO_QUERY_KEY = "picture:picturevo_query_list:";
-    private static final Long TTL_MINUTES = 24 * 60 * (long) 60;
+    private static final Long TTL_MINUTES = (long) 10;
     @Resource
     private RedisTemplate<String, String> redisTemplate;
     @Resource
@@ -223,7 +223,7 @@ public class PictureController {
         Page<PictureVO> pictureVoPage = cacheClient.queryWithCache(
                 cacheKey,
                 Page.class,
-                Duration.ofSeconds(TTL_MINUTES),
+                Duration.ofMinutes(TTL_MINUTES),
                 () -> {
                     // 数据库查询逻辑
                     Page<Picture> picturePage = pictureService.page(

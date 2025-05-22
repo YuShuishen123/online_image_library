@@ -59,7 +59,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private FileDeleteUtil fileDeleteUtil;
 
 
-
     @Transactional(rollbackFor = Exception.class)
     @Override
     public PictureVO uploadPicture(MultipartFile multipartFile,
@@ -212,6 +211,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         picture.setUrl(uploadResult.getUrl());
         picture.setThumbnailUrl(uploadResult.getThumbnailUrl());
+        picture.setOriginalImageurl(uploadResult.getOriginalImageurl());
         picture.setPicSize(uploadResult.getPicSize());
         picture.setPicWidth(uploadResult.getPicWidth());
         picture.setPicHeight(uploadResult.getPicHeight());
@@ -387,6 +387,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
 
         String url = oldPicture.getUrl();
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        String originalImageurl = oldPicture.getOriginalImageurl();
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
 
@@ -397,8 +399,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 调用删除服务（假设 pictureService 有 delete 方法）
         // 1.数据库删除
         ThrowUtils.throwIf(pictureMapper.deleteById(id) != 1, ErrorCode.OPERATION_ERROR, "图片删除失败");
-        // 2.存储桶内删除
-        ThrowUtils.throwIf(!fileDeleteUtil.deleteFileByUrl(url), ErrorCode.OPERATION_ERROR, "云端删除失败");
+        // 2.存储桶内删除(异步删除)
+        if (pictureMapper.selectCount(new QueryWrapper<Picture>().eq("url", url)) == 0) {
+            fileDeleteUtil.asyncCheckAndDeleteFile(url);
+            fileDeleteUtil.asyncCheckAndDeleteFile(thumbnailUrl);
+            fileDeleteUtil.asyncCheckAndDeleteFile(originalImageurl);
+        }
         return true;
     }
 
