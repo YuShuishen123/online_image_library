@@ -94,21 +94,23 @@ public class FileUploadUtil {
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
             List<CIObject> objectList = processResults.getObjectList();
-            String originalFilename = context.originalFilename;
             UploadPictureResult result = new UploadPictureResult();
             if (CollUtil.isNotEmpty(objectList)) {
+                // 设置压缩图片地址以及缩略图的地址
                 CIObject compressedCiObject = objectList.get(0);
                 CIObject thumbnailCiObject = objectList.get(1);
-                result = buildResult(originalFilename, compressedCiObject, thumbnailCiObject);
-            } else {
-                result.setPicName(context.originalFilename);
-                result.setPicFormat(imageInfo.getFormat());
-                result.setPicHeight(imageInfo.getHeight());
-                result.setPicWidth(imageInfo.getWidth());
-                result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
-                result.setPicSize(context.multipartFile.getSize());
+                result = buildResult(compressedCiObject, thumbnailCiObject);
+            }else{
                 result.setUrl(cosClientConfig.getHost() + "/" + context.filePath);
             }
+            // 设置图片名称
+            result.setPicName(context.originalFilename);
+            result.setPicFormat(imageInfo.getFormat());
+            result.setPicHeight(imageInfo.getHeight());
+            result.setPicWidth(imageInfo.getWidth());
+            result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
+            result.setPicSize(context.multipartFile.getSize());
+            // 设置原始图片地址
             result.setOriginalImageurl(cosClientConfig.getHost() + "/" + context.filePath);
             return result;
         });
@@ -123,17 +125,9 @@ public class FileUploadUtil {
     }
 
     // 构建缩略图上传结果
-    private UploadPictureResult buildResult(String originFilename, CIObject compressedCiObject, CIObject thumbnailCiObject) {
+    private UploadPictureResult buildResult(CIObject compressedCiObject, CIObject thumbnailCiObject) {
         UploadPictureResult uploadPictureResult = new UploadPictureResult();
-        int picWidth = compressedCiObject.getWidth();
-        int picHeight = compressedCiObject.getHeight();
-        double picScale = NumberUtil.round(picWidth * 1.0 / picHeight, 2).doubleValue();
-        uploadPictureResult.setPicName(FileUtil.mainName(originFilename));
-        uploadPictureResult.setPicWidth(picWidth);
-        uploadPictureResult.setPicHeight(picHeight);
-        uploadPictureResult.setPicScale(picScale);
-        uploadPictureResult.setPicFormat(compressedCiObject.getFormat());
-        uploadPictureResult.setPicSize(compressedCiObject.getSize().longValue());
+
         uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
         // 设置图片为压缩后的地址
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
@@ -167,7 +161,6 @@ public class FileUploadUtil {
         try {
             tempFile = File.createTempFile("upload_", "." + fileExtension);
             HttpUtil.downloadFile(fileurl, tempFile);
-
             // 校验文件大小（再次确认）
             long fileSize = tempFile.length();
             long maxFileSize = 8 * 1024 * 1024L;
@@ -176,13 +169,24 @@ public class FileUploadUtil {
             // 上传到对象存储
             PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, tempFile);
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
             List<CIObject> objectList = processResults.getObjectList();
             UploadPictureResult result = new UploadPictureResult();
             if (CollUtil.isNotEmpty(objectList)) {
                 CIObject compressedCiObject = objectList.get(0);
                 CIObject thumbnailCiObject = objectList.get(1);
-                result = buildResult(originalFilename, compressedCiObject, thumbnailCiObject);
+                result = buildResult(compressedCiObject, thumbnailCiObject);
+            }else{
+                result.setUrl(cosClientConfig.getHost() + "/" + filePath);
             }
+            // 设置图片内容(以原图为默认)
+            result.setPicName(originalFilename);
+            result.setPicFormat(imageInfo.getFormat());
+            result.setPicHeight(imageInfo.getHeight());
+            result.setPicWidth(imageInfo.getWidth());
+            result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
+            result.setPicSize(fileSize);
+            // 设置原始图片地址
             result.setOriginalImageurl(cosClientConfig.getHost() + "/" + filePath);
             return result;
         } catch (Exception ex) {

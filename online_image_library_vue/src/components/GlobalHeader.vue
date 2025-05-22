@@ -5,12 +5,17 @@
         <RouterLink to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.svg" alt="logo" />
-            <div class="title">鱼皮云图库</div>
+            <div class="title">智能云协同图库</div>
           </div>
         </RouterLink>
       </a-col>
       <a-col flex="auto">
-        <a-menu v-model:selectedKeys="current" mode="horizontal" :items="menus" @click="doMenuClick" />
+        <a-menu
+          v-model:selectedKeys="current"
+          mode="horizontal"
+          :items="menus"
+          @click="doMenuClick"
+        />
       </a-col>
       <a-col flex="120px">
         <div class="user-login-status">
@@ -38,29 +43,25 @@
         </div>
       </a-col>
     </a-row>
-
-
   </div>
 </template>
 <script lang="ts" setup>
 import { computed, h, ref } from 'vue'
 import type { MenuProps } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
-import { type RouteRecordRaw, useRouter } from "vue-router";
+import { type RouteRecordRaw, useRouter } from 'vue-router'
 import { userLogoutUsingPost } from '@/api/userController'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { HomeOutlined } from '@ant-design/icons-vue'
-import checkAccess from '@/access/checkAccess';
+import checkAccess from '@/access/checkAccess'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
-
-
 // 监听路由变化，更新当前选中菜单
 router.afterEach((to) => {
-  current.value = [to.path];
-});
+  current.value = [to.path]
+})
 
 // 退出登录
 const logout = async () => {
@@ -69,12 +70,12 @@ const logout = async () => {
     // 清空用户信息
     await loginUserStore.setLoginUser({
       id: 0,
-    });
+    })
     message.success('退出登录成功')
     // 跳转到首页
     router.push('/')
   } else {
-    message.error("退出登录失败," + res.data.message)
+    message.error('退出登录失败,' + res.data.message)
   }
 }
 
@@ -82,8 +83,8 @@ const logout = async () => {
 const doMenuClick = ({ key }: { key: string }) => {
   router.push({
     path: key,
-  });
-};
+  })
+}
 
 // 当前选中菜单
 const current = ref<string[]>(['home'])
@@ -98,7 +99,12 @@ const originItems = ref<MenuProps['items']>([
     key: '/admin/userManage',
     label: '用户管理',
     title: '用户管理',
-  }
+  },
+  {
+    key: '/admin/pictureManage',
+    label: '图片管理',
+    title: '图片管理',
+  },
 ])
 // 过滤菜单项
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,7 +140,6 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
 const menus = computed(() => {
   return filterMenus(originItems.value)
 })
-
 </script>
 
 <style scoped>

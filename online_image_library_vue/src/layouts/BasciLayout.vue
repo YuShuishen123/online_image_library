@@ -49,22 +49,6 @@ const contentStyle = {
 </script>
 
 <style scoped>
-html,
-body,
-#app,
-#basciLayout,
-.main-layout {
-  height: 100%;
-  min-height: 100vh;
-}
-
-.main-layout {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  height: 100vh;
-}
-
 .header {
   flex-shrink: 0;
 }

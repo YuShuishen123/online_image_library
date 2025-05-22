@@ -6,7 +6,7 @@ import router from '@/router'
 // let firstFetchLoginUser = true
 
 /**
- * 全局权限校验,
+ * 全局权限校验
  */
 router.beforeEach(async (to, from, next) => {
   const loginUserStore = useLoginUserStore()
