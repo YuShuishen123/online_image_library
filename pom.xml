@@ -7,6 +7,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>online_image_library</name>
     <description>online_image_library</description>
+    <packaging>jar</packaging>
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -179,7 +180,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>springboot.online_image_library.OnlineImageLibraryApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

@@ -10,15 +10,27 @@
       <a-form-item>
         <a-space>
           <a-button type="primary" html-type="submit">搜索</a-button>
-          <a-button type="primary" html-type="submit" @click="resetSearchParams()">重置搜索参数</a-button>
+          <a-button type="primary" html-type="submit" @click="resetSearchParams()"
+            >重置搜索参数</a-button
+          >
         </a-space>
       </a-form-item>
     </a-form>
-    <a-table :columns="columns" :data-source="dataList" :pagination="pagination" @loading="true"
-      @change="handleTableChange">
+    <a-table
+      :columns="columns"
+      :data-source="dataList"
+      :pagination="pagination"
+      @loading="true"
+      @change="handleTableChange"
+    >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userAvatar'">
-          <a-image :src="record.userAvatar" width="20" height="20" />
+          <a-image
+            :src="record.userAvatar"
+            width="64"
+            height="64"
+            style="width: 64px; height: 64px"
+          />
           <a>
             {{ record.name }}
           </a>
@@ -46,7 +58,6 @@
       </template>
     </a-table>
   </div>
-
 </template>
 
 <script lang="ts" setup>
@@ -54,7 +65,6 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { deleteUserUsingPost, getUserVobyIdUsingPost } from '@/api/userController'
 import dayjs from 'dayjs'
-
 
 const columns = [
   {
@@ -101,8 +111,8 @@ const total = ref(0)
 const searchParams = reactive<API.UserQueryRequest>({
   current: 1,
   pageSize: 5,
-  sortField: "updateTime",
-  sortOrder: "desc",
+  sortField: 'updateTime',
+  sortOrder: 'desc',
 })
 
 // 删除数据
@@ -132,10 +142,10 @@ const pagination = reactive({
 // 获取数据
 const fetchData = async () => {
   const res = await getUserVobyIdUsingPost({
-    ...searchParams
+    ...searchParams,
   })
   if (res.data.data) {
-    dataList.value = res.data.data.records as API.UserVO[] ?? []
+    dataList.value = (res.data.data.records as API.UserVO[]) ?? []
     total.value = Number(res.data.data.total) || 0
     // 更新分页信息
     pagination.total = total.value
@@ -145,7 +155,6 @@ const fetchData = async () => {
     message.error('获取数据失败，' + res.data.message)
   }
 }
-
 
 // 添加表单ref
 const formRef = ref()
@@ -162,9 +171,8 @@ const resetSearchParams = () => {
   formRef.value.resetFields()
 }
 
-
 // 分页改变
-const handleTableChange = (pag: { current: number, pageSize: number }) => {
+const handleTableChange = (pag: { current: number; pageSize: number }) => {
   // 更新搜索参数
   searchParams.current = pag.current
   searchParams.pageSize = pag.pageSize
@@ -178,8 +186,6 @@ const handleTableChange = (pag: { current: number, pageSize: number }) => {
 onMounted(() => {
   fetchData()
 })
-
-
 </script>
 
 <style scoped>

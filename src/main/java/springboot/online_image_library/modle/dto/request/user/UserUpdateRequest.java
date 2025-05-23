@@ -2,6 +2,7 @@ package springboot.online_image_library.modle.dto.request.user;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -32,10 +33,6 @@ public class UserUpdateRequest implements Serializable {
      */
     private String userProfile;
 
-    /**
-     * 用户角色：user/admin
-     */
-    private String userRole;
-
+    @Serial
     private static final long serialVersionUID = 1L;
 }

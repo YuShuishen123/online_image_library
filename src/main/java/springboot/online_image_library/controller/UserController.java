@@ -1,5 +1,7 @@
 package springboot.online_image_library.controller;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -66,7 +68,23 @@ public class UserController {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response);
+        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response,0);
+        return ResultUtils.success(loginUserVO);
+    }
+
+
+    @ApiOperation(
+            value = "管理员登陆",
+            notes = "用于管理员登陆功能",
+            httpMethod = "POST",
+            response = BaseResponse.class
+    )
+    @PostMapping("/admin/login")
+    public BaseResponse<LoginUserVO> adminLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
+        ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
+        String userAccount = userLoginRequest.getUserAccount();
+        String userPassword = userLoginRequest.getUserPassword();
+        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response,1);
         return ResultUtils.success(loginUserVO);
     }
 
@@ -141,8 +159,6 @@ public class UserController {
         return ResultUtils.success(user.getId());
     }
 
-
-
     /**
      * 根据 id 获取用户（仅管理员）
      */
@@ -189,20 +205,31 @@ public class UserController {
      * 更新用户
      */
     @ApiOperation(
-            value = "管理员更新用户",
-            notes = "用于更新用户功能",
+            value = "用户个人信息更新",
+            notes = "用于更新用户个人信息,普通用户只能更新自己的信息,管理员可以更新所有用户的信息",
             httpMethod = "POST",
             response = BaseResponse.class
     )
     @PostMapping("/update")
-    @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
+        // 判断更新的用户是否存在
+        User oldUser = userService.getById(userUpdateRequest.getId());
+        throwIf(oldUser == null,ErrorCode.NOT_FOUND_ERROR,"不存在的用户");
+        // 获取当前登陆用户
+        User loginUser = userService.getLoginUser(request);
+        // 比对用户,普通用户只能修改自己的信息,管理员可以直接修改
+        if (!oldUser.getId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        User newUser = new User();
+        // 把request内存在且非空的字段赋值给newUser
+        BeanUtil.copyProperties(userUpdateRequest, newUser, CopyOptions.create().setIgnoreNullValue(true).setIgnoreError(true));
+        // 更新信息
+        boolean result = userService.updateById(newUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }

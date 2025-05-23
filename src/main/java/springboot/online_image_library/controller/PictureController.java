@@ -202,7 +202,6 @@ public class PictureController {
             response = BaseResponse.class
     )
     @PostMapping("/list/page")
-    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Page<PictureVO>> listPictureVoByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
         // 提取分页相关信息
         long current = pictureQueryRequest.getCurrent();

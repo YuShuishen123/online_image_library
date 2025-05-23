@@ -57,7 +57,7 @@ public interface UserService extends IService<User> {
      * @param response 响应
      * @return 登陆用户视图
      */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response);
+    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin);
 
     /**
      * 获取当前登录用户

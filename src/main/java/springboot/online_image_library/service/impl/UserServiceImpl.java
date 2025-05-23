@@ -135,7 +135,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response) {
+    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin) {
         if (CharSequenceUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
@@ -148,6 +148,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null || !getEncryptPassword(userPassword).equals(user.getUserPassword())) {
             log.info("user login failed");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
+        }
+
+        // 判断用户是否是管理员,如果isAdmin为1,但是不是管理员,则返回无权限
+        if (isAdmin == 1 && !user.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
 
         String token = IdUtil.simpleUUID();

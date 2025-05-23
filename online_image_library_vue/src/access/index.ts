@@ -1,5 +1,5 @@
 import router from '@/router'
-import {useLoginUserStore} from '@/stores/useLoginUserStore'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import ACCESS_ENUM from '@/access/accessEnum'
 import checkAccess from '@/access/checkAccess'
 

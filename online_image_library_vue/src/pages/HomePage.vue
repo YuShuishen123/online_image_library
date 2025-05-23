@@ -36,7 +36,7 @@
               </div>
             </template>
             <template #actions>
-              <a-button :href="picture.originalImageurl" target="_blank" @click.stop>
+              <a-button @click.stop="handleDownload(picture.originalImageurl || '')">
                 下载原图
               </a-button>
             </template>
@@ -71,10 +71,55 @@
     <a-modal
       v-model:visible="previewVisible"
       :footer="null"
-      :width="800"
+      :width="1000"
       @cancel="handlePreviewCancel"
+      class="preview-modal"
     >
-      <img :src="previewImage" style="width: 100%" />
+      <div class="preview-container">
+        <div class="preview-image-container">
+          <img :src="previewImage" class="preview-image" />
+          <div class="image-info-bar">
+            <span>{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span>
+            <span>{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
+          </div>
+        </div>
+        <div class="preview-info-panel">
+          <div class="info-header">
+            <h2>{{ currentPicture?.name }}</h2>
+            <div class="tags-container">
+              <a-tag v-for="tag in currentPicture?.tags" :key="tag" color="blue">{{ tag }}</a-tag>
+            </div>
+          </div>
+          <div class="info-content">
+            <div class="info-item">
+              <span class="label">上传时间：</span>
+              <span class="value">{{ formatDate(currentPicture?.createTime || '') }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">上传者：</span>
+              <span class="value">{{ currentPicture?.user?.userName || '未知' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">原图比例：</span>
+              <span class="value">{{ currentPicture?.picScale || '未知' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">原图大小: </span>
+              <span class="value">{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">分辨率：</span>
+              <span class="value"
+                >{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span
+              >
+            </div>
+            <div class="info-item description">
+              <span class="label">图片描述：</span>
+              <span class="value">{{ currentPicture?.introduction || '暂无描述' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </a-modal>
   </a-layout-content>
 </template>
@@ -82,6 +127,8 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { listPictureVoByPageUsingPost } from '@/api/pictureController'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { message } from 'ant-design-vue'
 
 const searchText = ref('')
 const currentPage = ref(1)
@@ -94,14 +141,17 @@ const requestBody = ref<API.PictureQueryRequest>()
 // 图片预览相关
 const previewVisible = ref(false)
 const previewImage = ref<string>('')
+const currentPicture = ref<API.PictureVO | null>(null)
 
 const showPreview = (picture: API.PictureVO) => {
   previewImage.value = picture.url || ''
+  currentPicture.value = picture
   previewVisible.value = true
 }
 
 const handlePreviewCancel = () => {
   previewVisible.value = false
+  currentPicture.value = null
 }
 
 const fetchPictureList = async () => {
@@ -146,6 +196,45 @@ const handlePageChange = () => {
 onMounted(() => {
   fetchPictureList()
 })
+
+const handleDownload = (url: string) => {
+  const loginUserStore = useLoginUserStore()
+  if (!loginUserStore.loginUser || loginUserStore.loginUser.id === 0) {
+    message.warning('请先登录后再下载')
+    return
+  }
+
+  if (!url) {
+    message.error('下载链接不存在')
+    return
+  }
+
+  try {
+    window.open(url, '_blank')
+  } catch (error) {
+    message.error('下载失败，请稍后重试')
+    console.error('下载失败:', error)
+  }
+}
+
+// 格式化文件大小
+const formatFileSize = (size: number) => {
+  if (!size) return '未知'
+  const mb = size / (1024 * 1024)
+  return `${mb.toFixed(2)} MB`
+}
+
+// 格式化时间
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '未知'
+  return new Date(dateStr).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 </script>
 
 <style scoped>
@@ -259,5 +348,113 @@ onMounted(() => {
 
 :deep(.ant-modal-body) {
   padding: 0;
+}
+
+.preview-modal :deep(.ant-modal-content) {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.preview-container {
+  display: flex;
+  gap: 24px;
+  height: 600px;
+}
+
+.preview-image-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.preview-image {
+  width: 100%;
+  height: calc(100% - 40px);
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.image-info-bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #666;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 8px 8px;
+}
+
+.preview-info-panel {
+  width: 300px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.info-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 16px;
+}
+
+.info-header h2 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-item .label {
+  color: #666;
+  font-size: 14px;
+}
+
+.info-item .value {
+  color: #333;
+  font-size: 15px;
+}
+
+.info-item.description {
+  margin-top: 8px;
+}
+
+.info-item.description .value {
+  line-height: 1.6;
+  color: #666;
+}
+
+:deep(.ant-modal-body) {
+  padding: 24px;
+}
+
+:deep(.ant-tag) {
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 </style>
