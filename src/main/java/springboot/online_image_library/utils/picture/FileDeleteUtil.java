@@ -1,12 +1,9 @@
 package springboot.online_image_library.utils.picture;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import springboot.online_image_library.manager.CosManager;
-import springboot.online_image_library.mapper.PictureMapper;
-import springboot.online_image_library.modle.entiry.Picture;
 
 import javax.annotation.Resource;
 
@@ -22,8 +19,6 @@ public class FileDeleteUtil {
     @Resource
     private CosManager cosManager;
 
-    @Resource
-    private PictureMapper pictureMapper;
 
     /**
      * 云存储删除文件接口
@@ -49,8 +44,7 @@ public class FileDeleteUtil {
      */
     @Async("imageAsyncExecutor")
     public void asyncCheckAndDeleteFile(String url) {
-        // 检查数据库中是否有其他图片也采用当前的这个url,如果有则不删除云端,防止其他记录url失效
-        if (pictureMapper.selectCount(new QueryWrapper<Picture>().eq("url", url)) == 0) {
+        // 检查数据库中是否有其他图片也采用当前的这个url,如果有则不删除云端,防止其他记录的url失效
             long start = System.currentTimeMillis();
             try {
                 boolean deleteResult = deleteFileByUrl(url);
@@ -69,11 +63,5 @@ public class FileDeleteUtil {
                     log.warn("异步云端删除任务耗时过长，url: {}, 耗时: {}ms", url, duration);
                 }
             }
-
-        } else {
-            log.info("图片url: {}，其他图片正在使用，不进行删除", url);
         }
-    }
-
-
 }

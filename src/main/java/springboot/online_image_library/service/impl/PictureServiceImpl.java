@@ -16,10 +16,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import springboot.online_image_library.common.CacheScheduleService;
 import springboot.online_image_library.common.DeleteRequest;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
+import springboot.online_image_library.manager.CacheClient;
 import springboot.online_image_library.mapper.PictureMapper;
 import springboot.online_image_library.modle.BO.UploadPictureResult;
 import springboot.online_image_library.modle.dto.request.picture.*;
@@ -35,9 +37,9 @@ import springboot.online_image_library.utils.picture.FileUploadUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
-
 
 /**
 * @author Yu'S'hui'shen
@@ -57,6 +59,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private PictureMapper pictureMapper;
     @Resource
     private FileDeleteUtil fileDeleteUtil;
+    // 缓存单张图片键前缀
+    private static final String SINGLE_IMAGE_CACHE = "picture:singleImageCache:";
+    // 单张图片缓存过期时间
+    private static final Duration SINGLE_IMAGE_CACHE_EXPIRE_TIME = Duration.ofSeconds((long) 15 * 60);
+    @Resource
+    CacheClient cacheClient;
+    @Resource
+    private CacheScheduleService cacheScheduleService;
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -75,6 +85,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 3. 区分新增/更新
         Picture picture;
         String oldPictureUrl = "";
+        String oldPictureThumbnailUrl = "";
+        String oldPictureOriginalImageurl = "";
         boolean isUpdate = pictureUploadRequest.getId() != null;
         if (isUpdate) {
             // 更新操作：保留原ID
@@ -82,6 +94,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                     .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在"));
             // 删除对象存储当中的旧的图片
             oldPictureUrl = picture.getUrl();
+            oldPictureThumbnailUrl = picture.getThumbnailUrl();
+            oldPictureOriginalImageurl = picture.getOriginalImageurl();
             // 权限校验
             if (!loginUser.getId().equals(picture.getUserId())) {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "无权修改他人图片");
@@ -100,7 +114,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 4. 文件上传
         UploadPictureResult uploadResult = fileUploadUtil.uploadPicture(multipartFile, uploadPathPrefix);
 
-        return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, oldPictureUrl);
+        return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, oldPictureUrl, oldPictureThumbnailUrl, oldPictureOriginalImageurl);
     }
 
     @Override
@@ -115,6 +129,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         // 3. 区分新增/更新
         Picture picture;
+        String oldPictureUrl = "";
+        String oldPictureThumbnailUrl = "";
+        String oldPictureOriginalImageurl = "";
         boolean isUpdate = pictureUploadRequest.getId() != null;
         if (isUpdate) {
             // 更新操作：保留原ID
@@ -124,6 +141,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             if (!loginUser.getId().equals(picture.getUserId())) {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "无权修改他人图片");
             }
+            // 删除对象存储当中的旧的图片
+            oldPictureUrl = picture.getUrl();
+            oldPictureThumbnailUrl = picture.getThumbnailUrl();
+            oldPictureOriginalImageurl = picture.getOriginalImageurl();
         } else {
             // 新增操作
             picture = new Picture();
@@ -135,7 +156,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 4. 文件上传
         UploadPictureResult uploadResult = fileUploadUtil.uploadPictureByUrl(fileurl, uploadPathPrefix);
 
-        return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, null);
+        return handlePictureUpload(picture, uploadResult, loginUser, isUpdate, oldPictureUrl, oldPictureThumbnailUrl, oldPictureOriginalImageurl);
     }
 
     @Override
@@ -153,6 +174,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         // 上传图片
         return uploadImages(imageDataList, pictureUploadByBatchRequest.getCount(), loginUser);
+    }
+
+    @Override
+    public Picture getPictureById(Long id) {
+        return cacheClient.queryWithCache(
+                SINGLE_IMAGE_CACHE + id,
+                Picture.class,
+                SINGLE_IMAGE_CACHE_EXPIRE_TIME, () -> {
+                    // 查询数据库
+                    Picture pictureFromDb = pictureMapper.selectById(id);
+                    ThrowUtils.throwIf(pictureFromDb == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+                    return pictureFromDb;
+                });
     }
 
 
@@ -193,16 +227,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return pictureVOList;
     }
 
-
-
-
-
     @Override
     public PictureVO handlePictureUpload(Picture picture,
                                          UploadPictureResult uploadResult,
                                          User loginUser,
                                          boolean isUpdate,
-                                         String oldPictureUrl) {
+                                         String oldPictureUrl,
+                                         String oldPictureThumbnailUrl,
+                                         String oldPictureOriginalImageurl) {
         // 映射字段
         if (StringUtils.isNotBlank(picture.getName())) {
             picture.setName(picture.getName());
@@ -230,12 +262,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (!this.saveOrUpdate(picture)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片保存失败");
         }
+        // 存入缓存
+        // 1. 获取缓存键
+        String pictureUid = SINGLE_IMAGE_CACHE + picture.getId();
+        // 2. 存入缓存
+        cacheClient.update(pictureUid, picture, SINGLE_IMAGE_CACHE_EXPIRE_TIME);
 
         // 如果是更新操作且存在旧图片URL，尝试删除旧图片
-        if (isUpdate && CharSequenceUtil.isNotBlank(oldPictureUrl) && !fileDeleteUtil.deleteFileByUrl(oldPictureUrl)) {
-            log.info("云端删除失败,对象地址:{}", oldPictureUrl);
+        if (isUpdate && pictureMapper.selectCount(new QueryWrapper<Picture>().ne("id", picture.getId()).eq("url", oldPictureUrl)) == 0) {
+            // 存储桶内删除旧图片(异步删除)
+            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureUrl);
+            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureThumbnailUrl);
+            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureOriginalImageurl);
         }
-
         // 设置上传者信息并返回
         PictureVO pictureVO = PictureVO.objToVo(picture);
         pictureVO.setUser(userService.getUserVO(loginUser));
@@ -383,7 +422,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         long id = deleteRequest.getId();
         // 判断图片是否存在
-        Picture oldPicture = pictureMapper.selectById(id);
+        Picture oldPicture = getPictureById(id);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
 
         String url = oldPicture.getUrl();
@@ -396,9 +435,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (!oldPicture.getUserId().equals(loginUser.getId()) &&!userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-        // 调用删除服务（假设 pictureService 有 delete 方法）
         // 1.数据库删除
         ThrowUtils.throwIf(pictureMapper.deleteById(id) != 1, ErrorCode.OPERATION_ERROR, "图片删除失败");
+
         // 2.存储桶内删除(异步删除)
         if (pictureMapper.selectCount(new QueryWrapper<Picture>().eq("url", url)) == 0) {
             fileDeleteUtil.asyncCheckAndDeleteFile(url);
@@ -506,6 +545,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 非管理员，创建或编辑都要改为待审核
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
         }
+    }
+
+    @Override
+    public void invalidateSingerPicture(long id) {
+        cacheClient.invalidate(SINGLE_IMAGE_CACHE + id);
     }
 
 

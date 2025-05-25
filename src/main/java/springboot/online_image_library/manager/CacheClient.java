@@ -121,6 +121,7 @@ public class CacheClient {
      * @throws CacheException 缓存回填异常
      */
     private <R> R loadFromDb(String key, Class<R> type, Duration ttl, Supplier<R> dbCallback) throws CacheException {
+        log.info("[queryWithCache] 未命中 Redis，开始查询数据库，key={}", key);
         String lockKey = LOCK_PREFIX + key;
         Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
         if (Boolean.TRUE.equals(locked)) {

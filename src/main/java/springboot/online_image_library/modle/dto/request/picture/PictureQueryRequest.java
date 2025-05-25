@@ -102,7 +102,6 @@ public class PictureQueryRequest extends PageRequest implements Serializable {
 
     /**
      * 生成用于分页查询的缓存唯一key
-     * 注意：调用前必须确保已设置reviewStatus等强制参数
      */
     public String generateCacheKey() {
         // 1. 构建有序参数字符串（按字母顺序排列字段）

@@ -50,7 +50,9 @@ public interface PictureService extends IService<Picture> {
                                   UploadPictureResult uploadResult,
                                   User loginUser,
                                   boolean isUpdate,
-                                  String oldPictureUrl);
+                                  String oldPictureUrl,
+                                  String oldPictureThumbnailUrl,
+                                  String oldPictureOriginalImageurl);
 
     /**
      * 将图片查询请求转为 QueryWrapper 对象
@@ -133,4 +135,16 @@ public interface PictureService extends IService<Picture> {
             User loginUser
     );
 
+    /**
+     * @param id 图片id
+     */
+    Picture getPictureById(Long id);
+
+
+    /**
+     * 失效单张图片缓存
+     *
+     * @param id 图片id
+     */
+    void invalidateSingerPicture(long id);
 }

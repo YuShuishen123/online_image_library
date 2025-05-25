@@ -2,6 +2,7 @@ package springboot.online_image_library.modle.dto.request.picture;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -21,11 +22,10 @@ public class PictureReviewRequest implements Serializable {
      */  
     private Integer reviewStatus;  
   
-    /**  
-     * 审核信息  
-     */  
-    private String reviewMessage;  
-  
-  
-    private static final long serialVersionUID = 1L;  
+    @Serial
+    private static final long serialVersionUID = 1L;
+    /**
+     * 审核信息
+     */
+    private String reviewMessage;
 }

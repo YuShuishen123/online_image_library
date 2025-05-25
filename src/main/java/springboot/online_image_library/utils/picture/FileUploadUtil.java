@@ -232,7 +232,7 @@ public class FileUploadUtil {
         long maxFileSize = 8 * 1024 * 1024L;
         ThrowUtils.throwIf(finaSize > maxFileSize,ErrorCode.PARAMS_ERROR,"图片大小不能大于8MB");
         // 文件后缀检验
-        final List<String> allowFormatList = Arrays.asList("jpeg", "jpg", "png", "webp","gif");
+        final List<String> allowFormatList = Arrays.asList("jpeg", "jpg", "png", "webp", "gif", "bmp", "svg");
         String fileSuffix = FileUtil.getSuffix(multipartFile.getOriginalFilename());
         ThrowUtils.throwIf(!allowFormatList.contains(fileSuffix), ErrorCode.PARAMS_ERROR, "文件类型错误");
     }

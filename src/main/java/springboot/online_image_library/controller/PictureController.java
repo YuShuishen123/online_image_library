@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
+import springboot.online_image_library.common.CacheScheduleService;
 import springboot.online_image_library.common.DeleteRequest;
 import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
@@ -28,7 +29,6 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -54,6 +54,8 @@ public class PictureController {
     private RedisTemplate<String, String> redisTemplate;
     @Resource
     CacheClient cacheClient;
+    @Resource
+    private CacheScheduleService cacheScheduleService;
 
     /**
      * 上传图片（可重新上传）
@@ -125,6 +127,11 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         boolean result = pictureService.deletePicture(deleteRequest, request);
+        // 异步删除缓存
+        if (result) {
+            log.debug("删除图片成功,开始删除缓存");
+            cacheScheduleService.scheduleInvalidateForSingePicture(deleteRequest.getId(), 0, pictureService);
+        }
         return ResultUtils.success(result);
     }
 
@@ -144,11 +151,7 @@ public class PictureController {
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Picture>  getPictureById(Long id){
         ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
-        // 查询数据库
-        Picture picture = pictureService.getById(id);
-        ThrowUtils.throwIf(picture == null,ErrorCode.NOT_FOUND_ERROR,"图片不存在");
-        // 返回数据
-        // 转换json格式
+        Picture picture = pictureService.getPictureById(id);
         return ResultUtils.success(picture);
     }
 
@@ -164,10 +167,8 @@ public class PictureController {
     @GetMapping("/get")
     public BaseResponse<PictureVO>  getPictureVoById(Long id){
         ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
-        // 查询数据库
-        Picture picture = pictureService.getById(id);
-        ThrowUtils.throwIf(picture == null,ErrorCode.NOT_FOUND_ERROR,"图片不存在");
-        // 返回数据
+        Picture picture = pictureService.getPictureById(id);
+        // 返回VO数据
         return ResultUtils.success(pictureService.getPictureVO(picture));
     }
 
@@ -231,7 +232,6 @@ public class PictureController {
                     return pictureService.getPictureVoPage(picturePage);
                 }
         );
-
         return ResultUtils.success(pictureVoPage);
     }
 
@@ -285,11 +285,13 @@ public class PictureController {
                                              HttpServletRequest request) {
         Picture picture = pictureService.validateAndBuildPictureUpdate(
                 pictureEditRequest,true, request);
-        // 设置编辑时间
-        picture.setEditTime(new Date());
+        // 第一次删除缓存
+        pictureService.invalidateSingerPicture(picture.getId());
         // 操作数据库
         ThrowUtils.throwIf(!pictureService.updateById(picture),
                 ErrorCode.OPERATION_ERROR, "更新失败");
+        // 第二次延迟删除缓存
+        cacheScheduleService.scheduleInvalidateForSingePicture(picture.getId(), 500, pictureService);
         return ResultUtils.success(true);
     }
 
@@ -304,9 +306,13 @@ public class PictureController {
     public BaseResponse<Boolean> updatePictureInfo(@RequestBody PictureUpdateRequest pictureUpdateRequest,HttpServletRequest httpServletRequest) {
         Picture picture = pictureService.validateAndBuildPictureUpdate(
                 pictureUpdateRequest,false, httpServletRequest);
+        // 第一次删除缓存
+        pictureService.invalidateSingerPicture(picture.getId());
         // 操作数据库
         ThrowUtils.throwIf(!pictureService.updateById(picture),
                 ErrorCode.OPERATION_ERROR, "更新失败");
+        // 第二次延迟删除缓存
+        cacheScheduleService.scheduleInvalidateForSingePicture(picture.getId(), 500, pictureService);
         return ResultUtils.success(true);
     }
 
@@ -328,9 +334,5 @@ public class PictureController {
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
         return ResultUtils.success(true);
     }
-
-
-
-
 }
 
