@@ -1,6 +1,7 @@
 package springboot.online_image_library.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -218,10 +219,10 @@ public class PictureController {
         String cacheKey = PICTUREVO_QUERY_KEY + pictureQueryRequest.generateCacheKey();
 
         // 使用多级缓存管理器查询数据
-        @SuppressWarnings("unchecked")
         Page<PictureVO> pictureVoPage = cacheClient.queryWithCache(
                 cacheKey,
-                Page.class,
+                new TypeReference<>() {
+                },
                 Duration.ofMinutes(TTL_MINUTES),
                 () -> {
                     // 数据库查询逻辑

@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Document;
@@ -180,7 +181,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     public Picture getPictureById(Long id) {
         return cacheClient.queryWithCache(
                 SINGLE_IMAGE_CACHE + id,
-                Picture.class,
+                new TypeReference<>() {
+                },
                 SINGLE_IMAGE_CACHE_EXPIRE_TIME, () -> {
                     // 查询数据库
                     Picture pictureFromDb = pictureMapper.selectById(id);

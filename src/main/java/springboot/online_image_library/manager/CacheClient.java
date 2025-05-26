@@ -2,6 +2,7 @@ package springboot.online_image_library.manager;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.benmanes.caffeine.cache.Cache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,14 +43,14 @@ public class CacheClient {
      * 查询缓存，按本地缓存 -> Redis -> 数据库的顺序查询，并回填缓存
      *
      * @param key        缓存键
-     * @param type       返回数据类型
+     * @param type       返回数据类型（使用 TypeReference 支持泛型）
      * @param ttl        缓存生存时间
      * @param dbCallback 数据库查询回调函数
      * @param <R>        返回类型泛型
      * @return 查询结果
      * @throws CacheException 缓存操作相关异常
      */
-    public <R> R queryWithCache(String key, Class<R> type, Duration ttl, Supplier<R> dbCallback) throws CacheException {
+    public <R> R queryWithCache(String key, TypeReference<R> type, Duration ttl, Supplier<R> dbCallback) throws CacheException {
         // 1. 查询本地缓存
         R result = getFromLocalCache(key, type);
         if (result != null || localCache.getIfPresent(key) == NULL_VALUE) {
@@ -74,14 +75,14 @@ public class CacheClient {
      * 从本地缓存获取数据
      *
      * @param key  缓存键
-     * @param type 数据类型
+     * @param type 数据类型（TypeReference）
      * @param <R>  返回类型泛型
      * @return 缓存数据或 null
      */
-    private <R> R getFromLocalCache(String key, Class<R> type) {
+    private <R> R getFromLocalCache(String key, TypeReference<R> type) {
         Object local = localCache.getIfPresent(key);
         if (local != null) {
-            return local == NULL_VALUE ? null : type.cast(local);
+            return local == NULL_VALUE ? null : JSONUtil.toBean(JSONUtil.toJsonStr(local), type.getType(), true);
         }
         return null;
     }
@@ -90,16 +91,16 @@ public class CacheClient {
      * 从 Redis 获取数据并回填本地缓存
      *
      * @param key  缓存键
-     * @param type 数据类型
+     * @param type 数据类型（TypeReference）
      * @param <R>  返回类型泛型
      * @return 缓存数据或 null
      * @throws CacheException Redis 操作异常
      */
-    private <R> R getFromRedis(String key, Class<R> type) throws CacheException {
+    private <R> R getFromRedis(String key, TypeReference<R> type) throws CacheException {
         String redisValue = redisTemplate.opsForValue().get(key);
         if (CharSequenceUtil.isNotBlank(redisValue)) {
             try {
-                R result = JSONUtil.toBean(redisValue, type);
+                R result = JSONUtil.toBean(redisValue, type.getType(), true);
                 localCache.put(key, result == null ? NULL_VALUE : result);
                 return result;
             } catch (Exception e) {
@@ -113,14 +114,14 @@ public class CacheClient {
      * 从数据库加载数据并回填缓存
      *
      * @param key        缓存键
-     * @param type       数据类型
+     * @param type       数据类型（TypeReference）
      * @param ttl        缓存生存时间
      * @param dbCallback 数据库查询回调
      * @param <R>        返回类型泛型
      * @return 数据库查询结果
      * @throws CacheException 缓存回填异常
      */
-    private <R> R loadFromDb(String key, Class<R> type, Duration ttl, Supplier<R> dbCallback) throws CacheException {
+    private <R> R loadFromDb(String key, TypeReference<R> type, Duration ttl, Supplier<R> dbCallback) throws CacheException {
         log.info("[queryWithCache] 未命中 Redis，开始查询数据库，key={}", key);
         String lockKey = LOCK_PREFIX + key;
         Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
@@ -131,21 +132,23 @@ public class CacheClient {
                 if (result != null) {
                     return result;
                 }
-
                 // 查询数据库
                 result = dbCallback.get();
+                log.info("[loadFromDb] 数据库查询结果: {}", result);
                 try {
+                    // 序列化为 JSON 并存入 Redis 和本地缓存
                     redisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(result != null ? result : NULL_VALUE), ttl);
+                    localCache.put(key, result != null ? result : NULL_VALUE);
                 } catch (Exception e) {
                     throw new CacheException(ErrorCode.REDIS_DATA_SERIALIZATION_FAILED);
                 }
-                localCache.put(key, result != null ? result : NULL_VALUE);
                 return result;
             } finally {
+                // 释放分布式锁
                 redisTemplate.delete(lockKey);
             }
         } else {
-            // 未获取锁，重试一次
+            // 未获取锁，重试
             log.debug("[queryWithCache] 未获取分布式锁，重试，key={}", key);
             try {
                 Thread.sleep(50);
@@ -189,7 +192,6 @@ public class CacheClient {
     }
 
     private enum NullValue {
-        INSTANCE;
+        INSTANCE
     }
-
 }

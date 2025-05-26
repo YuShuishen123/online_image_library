@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author Yu'S'hui'shen
- * caffeine缓存配置
+ * 本地caffeine缓存配置
  */
 @Configuration
 public class CacheConfig {

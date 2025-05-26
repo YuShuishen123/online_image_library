@@ -6,6 +6,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -185,7 +186,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 登录状态丢失，回调直接抛异常
         return cacheClient.queryWithCache(
                 redisKey,
-                User.class,
+                new TypeReference<>() {
+                },
                 Duration.ofSeconds(LOGIN_EXPIRE_TIME),
                 () -> {
                     // 登录状态丢失，回调直接抛异常
