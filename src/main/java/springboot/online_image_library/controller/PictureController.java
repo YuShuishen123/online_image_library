@@ -16,7 +16,7 @@ import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
-import springboot.online_image_library.manager.CacheClient;
+import springboot.online_image_library.manager.AbstractCacheClient;
 import springboot.online_image_library.modle.BO.PictureTagCategory;
 import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
@@ -53,8 +53,12 @@ public class PictureController {
     private static final Long TTL_MINUTES = (long) 10;
     @Resource
     private RedisTemplate<String, String> redisTemplate;
-    @Resource
-    CacheClient cacheClient;
+    // 二级缓存
+    @Resource(name = "cacheClient")
+    AbstractCacheClient cacheClient;
+    // 一级缓存
+    @Resource(name = "cacheClientNoLocal")
+    AbstractCacheClient cacheClientNoLocal;
     @Resource
     private CacheScheduleService cacheScheduleService;
 
@@ -186,11 +190,28 @@ public class PictureController {
     @PostMapping("/list/admin/page")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
+
+        // 根据pictureQueryRequest,生成一个唯一的key
+        String cacheKey = PICTUREVO_QUERY_KEY + pictureQueryRequest.generateCacheKey();
+
         // 提取分页相关信息
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
-        // 建立分页对象
-        Page<Picture> picturePage = pictureService.page(new Page<>(current,size),pictureService.getQueryWrapper(pictureQueryRequest));
+
+        // 使用一级缓存管理器查询数据
+        Page<Picture> picturePage = cacheClientNoLocal.query(
+                cacheKey,
+                new TypeReference<>() {
+                },
+                Duration.ofMinutes(TTL_MINUTES),
+                () -> {
+                    // 数据库查询逻辑
+                    return pictureService.page(
+                            new Page<>(current, size),
+                            pictureService.getQueryWrapper(pictureQueryRequest)
+                    );
+                }
+        );
         return ResultUtils.success(picturePage);
     }
 
@@ -219,7 +240,7 @@ public class PictureController {
         String cacheKey = PICTUREVO_QUERY_KEY + pictureQueryRequest.generateCacheKey();
 
         // 使用多级缓存管理器查询数据
-        Page<PictureVO> pictureVoPage = cacheClient.queryWithCache(
+        Page<PictureVO> pictureVoPage = cacheClient.query(
                 cacheKey,
                 new TypeReference<>() {
                 },

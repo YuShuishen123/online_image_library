@@ -15,7 +15,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
-import springboot.online_image_library.manager.CacheClient;
+import springboot.online_image_library.manager.AbstractCacheClient;
 import springboot.online_image_library.mapper.UserMapper;
 import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
 import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
@@ -24,6 +24,7 @@ import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
 import springboot.online_image_library.service.UserService;
 
+import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,11 +54,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private static final String USER_ACCOUNT_NICKNAME = "userAccount";
 
     // 创建一个CacheClient对象
-    CacheClient cacheClient;
+    @Resource(name = "cacheClientNoLocal")
+    AbstractCacheClient cacheClientNoLocal;
 
-    public UserServiceImpl(CacheClient cacheClient) {
-        this.cacheClient = cacheClient;
-    }
 
 
     @Override
@@ -160,7 +159,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String redisKey = USER_LOGIN_STATE + token;
 
         // 回填缓存
-        cacheClient.update(redisKey, user, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
+        cacheClientNoLocal.update(redisKey, user, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
 
         // 写 Cookie
         Cookie cookie = new Cookie(SESSION_TOKEN, token);
@@ -184,7 +183,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 查询缓存（本地 -> Redis -> DB）
         // 登录状态丢失，回调直接抛异常
         // 登录状态丢失，回调直接抛异常
-        return cacheClient.queryWithCache(
+        return cacheClientNoLocal.query(
                 redisKey,
                 new TypeReference<>() {
                 },
@@ -203,7 +202,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String token = getSessionToken(request);
         if (token != null) {
             String redisKey = USER_LOGIN_STATE + token;
-            cacheClient.invalidate(redisKey);
+            cacheClientNoLocal.invalidate(redisKey);
         }
         return true;
     }

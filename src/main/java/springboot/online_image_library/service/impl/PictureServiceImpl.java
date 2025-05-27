@@ -17,12 +17,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import springboot.online_image_library.common.CacheScheduleService;
 import springboot.online_image_library.common.DeleteRequest;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
-import springboot.online_image_library.manager.CacheClient;
+import springboot.online_image_library.manager.AbstractCacheClient;
 import springboot.online_image_library.mapper.PictureMapper;
 import springboot.online_image_library.modle.BO.UploadPictureResult;
 import springboot.online_image_library.modle.dto.request.picture.*;
@@ -64,11 +63,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private static final String SINGLE_IMAGE_CACHE = "picture:singleImageCache:";
     // 单张图片缓存过期时间
     private static final Duration SINGLE_IMAGE_CACHE_EXPIRE_TIME = Duration.ofSeconds((long) 15 * 60);
-    @Resource
-    CacheClient cacheClient;
-    @Resource
-    private CacheScheduleService cacheScheduleService;
-
+    @Resource(name = "cacheClient")
+    AbstractCacheClient cacheClient;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
@@ -179,7 +175,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     @Override
     public Picture getPictureById(Long id) {
-        return cacheClient.queryWithCache(
+        return cacheClient.query(
                 SINGLE_IMAGE_CACHE + id,
                 new TypeReference<>() {
                 },
