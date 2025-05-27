@@ -9,22 +9,23 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
-import springboot.online_image_library.manager.AbstractCacheClient;
+import springboot.online_image_library.manager.CacheClientNoLocal;
 import springboot.online_image_library.mapper.UserMapper;
 import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
 import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
+import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.service.UserService;
 
-import javax.annotation.Resource;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -54,10 +55,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private static final String USER_ACCOUNT_NICKNAME = "userAccount";
 
     // 创建一个CacheClient对象
-    @Resource(name = "cacheClientNoLocal")
-    AbstractCacheClient cacheClientNoLocal;
+    private final CacheClientNoLocal cacheClientNoLocal;
+    // 创建一个SpaceService对象
+    private final SpaceService spaceService;
 
-
+    public UserServiceImpl(@Qualifier("cacheClientNoLocal") CacheClientNoLocal cacheClientNoLocal, SpaceService spaceService) {
+        this.cacheClientNoLocal = cacheClientNoLocal;
+        this.spaceService = spaceService;
+    }
 
     @Override
     public QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest) {
@@ -117,6 +122,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             boolean success = save(user);
             // 处理其他插入失败情况
             throwIf(!success, ErrorCode.OPERATION_ERROR, "注册失败");
+            // 异步创建空间
+            spaceService.addSpaceForNewUser(user);
             return user.getId();
         } catch (DuplicateKeyException e) {
             // 捕获唯一键冲突异常
@@ -181,7 +188,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String redisKey = USER_LOGIN_STATE + token;
 
         // 查询缓存（本地 -> Redis -> DB）
-        // 登录状态丢失，回调直接抛异常
         // 登录状态丢失，回调直接抛异常
         return cacheClientNoLocal.query(
                 redisKey,

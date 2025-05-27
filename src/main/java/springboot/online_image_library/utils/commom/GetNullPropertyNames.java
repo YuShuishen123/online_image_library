@@ -10,10 +10,10 @@ import java.util.List;
 /**
  * @author Yu'S'hui'shen
  * @date 2025/5/27
- * @description
+ * @description 获取对象中值为 null 的属性
  */
 
-public class CommomUtils {
+public class GetNullPropertyNames {
 
     /**
      * 获取对象中值为 null 的属性名

@@ -7,7 +7,6 @@ package springboot.online_image_library.constant;
  */
 
 public final class UserConstants {
-    // 将 UserConstant 接口中定义的常量迁移到更合适的类或枚举类型中
     // 私有构造，防止实例化
     private UserConstants() {}
 

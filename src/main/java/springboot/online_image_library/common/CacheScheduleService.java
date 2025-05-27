@@ -14,7 +14,6 @@ import springboot.online_image_library.service.PictureService;
 public class CacheScheduleService {
     /**
      * 异步延迟双删
-     *
      * @param pictureId      图片id
      * @param delay          延迟时间
      * @param pictureService 图片服务

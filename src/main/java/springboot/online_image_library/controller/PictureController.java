@@ -140,9 +140,6 @@ public class PictureController {
         return ResultUtils.success(result);
     }
 
-
-
-
     /**
      * 根据id获取图片信息(仅管理员可用)
      */

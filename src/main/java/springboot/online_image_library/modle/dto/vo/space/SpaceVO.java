@@ -1,7 +1,22 @@
 package springboot.online_image_library.modle.dto.vo.space;
 
+import lombok.Data;
+import org.springframework.beans.BeanUtils;
+import springboot.online_image_library.modle.dto.vo.user.UserVO;
+import springboot.online_image_library.modle.entiry.Space;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * 空间封装类
+ *
+ * @author Yu'S'hui'shen
+ */
 @Data
 public class SpaceVO implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
     /**
      * id

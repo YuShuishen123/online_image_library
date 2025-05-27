@@ -28,7 +28,7 @@ public class SpaceUpdateRequest implements Serializable {
      */
     private Integer spaceLevel;
     /**
-     * 空间图片的最大总大小
+     * 空间最大容量
      */
     private Long maxSize;
     /**

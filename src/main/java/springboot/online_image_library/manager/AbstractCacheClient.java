@@ -76,7 +76,7 @@ public abstract class AbstractCacheClient {
                 saveToLocalCache(key, result, ttl);
                 return result;
             } catch (Exception e) {
-                throw new CacheException(ErrorCode.REDIS_DATA_SERIALIZATION_FAILED);
+                throw new CacheException(ErrorCode.REDIS_DATA_SERIALIZATION_FAILED, e.getMessage());
             } finally {
                 redisTemplate.delete(lockKey);
             }
