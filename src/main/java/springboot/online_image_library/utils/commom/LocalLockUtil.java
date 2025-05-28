@@ -28,7 +28,7 @@ public class LocalLockUtil {
     }
 
     /**
-     * 获取锁并执行代码块
+     * 获取锁并执行代码块,但是不带返回值
      *
      * @param lockKey 锁键（建议按业务命名）
      * @param task    需要加锁执行的逻辑
@@ -45,7 +45,14 @@ public class LocalLockUtil {
         }
     }
 
-    // 在LocalLockUtil中添加新方法
+    /**
+     * 获取锁并执行代码块，带返回值
+     *
+     * @param lockKey 锁键
+     * @param task    需要执行的逻辑
+     * @param <T>     返回值类型
+     * @return T 返回值
+     */
     public static <T> T executeWithLockAndReturn(String lockKey, Supplier<T> task) {
         Lock lock = LOCK_MAP.computeIfAbsent(lockKey, k -> new ReentrantLock());
         lock.lock();

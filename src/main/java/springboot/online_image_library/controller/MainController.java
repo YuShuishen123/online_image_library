@@ -1,16 +1,20 @@
 package springboot.online_image_library.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import springboot.online_image_library.annotation.AuthCheck;
+import springboot.online_image_library.annotation.IdempotentCheck;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
+import springboot.online_image_library.exception.BusinessException;
+import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.manager.CacheClient;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.UserService;
@@ -20,6 +24,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -27,7 +32,7 @@ import java.util.Objects;
  * @author Yu'S'hui'shen
  */
 @Slf4j
-@Api(tags = "MainController", value = "系统基础功能接口")
+@Tag(name = "MainController", description = "系统基础功能测试接口")
 @RestController
 @RequestMapping("/")
 public class MainController {
@@ -40,6 +45,25 @@ public class MainController {
     private static final long LOGIN_EXPIRE_TIME = 24 * 60 * (long) 60;
     @Resource
     CacheClient cacheClient;
+
+    @Operation(
+            summary = "幂等测试",
+            description = "用于检测幂等切面是否生效",
+            method = "POST")
+    @PostMapping("/idempotent")
+    @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
+    @IdempotentCheck(timeOut = 20, timeUnit = TimeUnit.SECONDS)
+    public BaseResponse<String> idempotentTest() {
+        try {
+            TimeUnit.SECONDS.sleep(5);
+        } catch (InterruptedException e) {
+            // 恢复线程中断状态
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "请求被中断");
+        }
+        return ResultUtils.success("成功");
+    }
+
 
 
     /**

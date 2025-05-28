@@ -48,11 +48,15 @@ public abstract class AbstractCacheClient {
     }
 
     private <R> R getFromRedis(String key, TypeReference<R> type) {
+        // 获取缓存数据
         String json = redisTemplate.opsForValue().get(key);
+        // 如果获取的数据非空
         if (CharSequenceUtil.isNotBlank(json)) {
             try {
+                // 把获取到的结果反序列化成对象并返回
                 return JSONUtil.toBean(json, type.getType(), true);
             } catch (Exception e) {
+                log.warn("[getFromRedis] Redis 数据反序列化失败，key={}, error={}", key, e.getMessage());
                 throw new CacheException(ErrorCode.REDIS_DATA_DESERIALIZATION_FAILED);
             }
         }
@@ -61,35 +65,61 @@ public abstract class AbstractCacheClient {
 
     private <R> R loadFromDb(String key, TypeReference<R> type, Duration ttl, Supplier<R> dbCallback) {
         String lockKey = LOCK_PREFIX + key;
-        Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
-        if (Boolean.TRUE.equals(locked)) {
-            try {
-                R result = getFromRedis(key, type);
-                if (result != null) {
+        // 最大重试次数
+        int maxAttempts = 5;
+        // 初始睡眠时间
+        int baseSleepMs = 50;
+        // 循环尝试获取锁
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
+            if (Boolean.TRUE.equals(locked)) {
+                try {
+                    // 再次尝试从Redis获取，防止并发下缓存刚被别人设置
+                    R result = getFromRedis(key, type);
+                    if (result != null) {
+                        saveToLocalCache(key, result, ttl);
+                        return result;
+                    }
+
+                    // 从数据库获取
+                    result = dbCallback.get();
+
+                    // 空值处理，防止缓存击穿
+                    String jsonStr = JSONUtil.toJsonStr(result != null ? result : NULL_VALUE);
+                    redisTemplate.opsForValue().set(key, jsonStr, ttl);
+
+                    // 保存到本地缓存
                     saveToLocalCache(key, result, ttl);
                     return result;
+                } catch (Exception e) {
+                    throw new CacheException(ErrorCode.REDIS_DATA_SERIALIZATION_FAILED, e.getMessage());
+                } finally {
+                    redisTemplate.delete(lockKey);
                 }
-
-                result = dbCallback.get();
-                String jsonStr = JSONUtil.toJsonStr(result != null ? result : NULL_VALUE);
-                redisTemplate.opsForValue().set(key, jsonStr, ttl);
-                saveToLocalCache(key, result, ttl);
-                return result;
-            } catch (Exception e) {
-                throw new CacheException(ErrorCode.REDIS_DATA_SERIALIZATION_FAILED, e.getMessage());
-            } finally {
-                redisTemplate.delete(lockKey);
             }
-        } else {
+            // 未获得锁，指数退避后重试
             try {
-                Thread.sleep(50);
-                return query(key, type, ttl, dbCallback);
+                /*
+                  位运算：将数字 1 左移 attempt 位
+                      attempt = 0：1L << 0 = 01  = 1
+                      attempt = 1：1L << 1 = 10  = 2
+                      attempt = 2：1L << 2 = 100 = 4
+                      attempt = 3：1L << 3 = 1000= 8
+                 */
+                long sleepTime = baseSleepMs * (1L << attempt);
+                log.debug("[query] 第 {} 次未获取锁，等待 {}ms 后重试，key={}", attempt + 1, sleepTime, key);
+                Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
+                log.warn("[query] 获取锁被中断，key={}", key);
                 Thread.currentThread().interrupt();
                 return null;
             }
         }
+
+        log.warn("[query] 超过最大重试次数仍未获取锁，放弃获取，key={}", key);
+        return null;
     }
+
 
     public void invalidate(String key) {
         redisTemplate.delete(key);
