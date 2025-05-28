@@ -16,6 +16,7 @@
     </properties>
     <dependencies>
 
+        <!--Redission依赖-->
         <!-- https://mvnrepository.com/artifact/org.redisson/redisson-spring-boot-starter -->
         <dependency>
             <groupId>org.redisson</groupId>
@@ -104,6 +105,7 @@
             <version>5.8.37</version>
         </dependency>
 
+        <!--接口文档与调试-->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>

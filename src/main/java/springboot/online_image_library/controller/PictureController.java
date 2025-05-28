@@ -2,8 +2,8 @@ package springboot.online_image_library.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +37,7 @@ import java.util.List;
  * @date 2025/5/12
  * @description 图片相关控制器类
  */
-@Api(tags = "PictureController")
+@Tag(name = "PictureController", description = "图片相关控制器类")
 @Slf4j
 @RestController
 @RequestMapping("/picture")
@@ -65,12 +65,10 @@ public class PictureController {
     /**
      * 上传图片（可重新上传）
      */
-    @ApiOperation(
-            value = "图片更新或上传",
-            notes = "用于图片更新或上传,限制图片最大为8MB",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "图片更新或上传",
+            description = "用于图片更新或上传,限制图片最大为8MB",
+            method = "POST")
     @PostMapping("/upload")
     public BaseResponse<PictureVO> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile,
@@ -84,12 +82,10 @@ public class PictureController {
     /**
      * 根据url上传图片
      */
-    @ApiOperation(
-            value = "根据url上传图片",
-            notes = "用于图片上传功能,限制图片最大为8MB",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "根据url上传图片",
+            description = "用于图片上传功能,限制图片最大为8MB",
+            method = "POST")
     @PostMapping("/upload/url")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<PictureVO> uploadPictureByUrl(
@@ -101,12 +97,10 @@ public class PictureController {
     }
 
 
-    @ApiOperation(
-            value = "批量抓取图片",
-            notes = "用于批量抓取图片功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "批量抓取图片",
+            description = "用于批量抓取图片功能",
+            method = "POST")
     @PostMapping("/upload/batch")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<List<PictureVO>> uploadPictureByBatch(
@@ -122,12 +116,10 @@ public class PictureController {
     /**
      * 删除图片
      */
-    @ApiOperation(
-            value = "删除图片(管理员)",
-            notes = "用于删除图片功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "删除图片(管理员)",
+            description = "用于删除图片功能",
+            method = "POST")
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
@@ -143,12 +135,10 @@ public class PictureController {
     /**
      * 根据id获取图片信息(仅管理员可用)
      */
-    @ApiOperation(
-            value = "根据id获取图片信息(管理员)",
-            notes = "用于管理员获取图片信息功能",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "根据id获取图片信息(管理员)",
+            description = "用于管理员获取图片信息功能",
+            method = "GET")
     @GetMapping("/admin/get")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Picture>  getPictureById(Long id){
@@ -160,12 +150,10 @@ public class PictureController {
     /**
      * 根据id获取图片信息(用户可用)
      */
-    @ApiOperation(
-            value = "根据id获取图片信息(用户)",
-            notes = "用于用户获取图片信息功能",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "根据id获取图片信息(用户)",
+            description = "用于用户获取图片信息功能",
+            method = "GET")
     @GetMapping("/get")
     public BaseResponse<PictureVO>  getPictureVoById(Long id){
         ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
@@ -178,12 +166,10 @@ public class PictureController {
      * 分页获取图片列表
      */
 
-    @ApiOperation(
-            value = "分页获取图片列表(管理员)",
-            notes = "用于管理员获取图片列表功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "分页获取图片列表(管理员)",
+            description = "用于管理员获取图片列表功能",
+            method = "POST")
     @PostMapping("/list/admin/page")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
@@ -215,12 +201,10 @@ public class PictureController {
     /**
      * 分页获取图片列表
      */
-    @ApiOperation(
-            value = "分页获取图片列表(用户)",
-            notes = "用于用户获取图片列表功能,普通用户只能查看审核状态为已通过的图片(强制)",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "分页获取图片列表(用户)",
+            description = "用于用户获取图片列表功能,普通用户只能查看审核状态为已通过的图片(强制)",
+            method = "POST")
     @PostMapping("/list/page")
     public BaseResponse<Page<PictureVO>> listPictureVoByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
         // 提取分页相关信息
@@ -255,12 +239,10 @@ public class PictureController {
     }
 
 
-    @ApiOperation(
-            value = "获取图片标签和分类",
-            notes = "用于获取图片标签和分类",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "获取图片标签和分类",
+            description = "用于获取图片标签和分类",
+            method = "GET")
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> listPictureTagCategory() {
         PictureTagCategory pictureTagCategory = new PictureTagCategory();
@@ -292,12 +274,10 @@ public class PictureController {
         return ResultUtils.success(pictureTagCategory);
     }
 
-    @ApiOperation(
-            value = "更新图片信息(用户端)",
-            notes = "用于更新图片功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "更新图片信息(用户端)",
+            description = "用于更新图片功能",
+            method = "POST")
     @PostMapping("/edit")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest,
@@ -314,12 +294,10 @@ public class PictureController {
         return ResultUtils.success(true);
     }
 
-    @ApiOperation(
-            value = "更新图片信息(管理员端)",
-            notes = "用于更新图片功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "更新图片信息(管理员端)",
+            description = "用于更新图片功能",
+            method = "POST")
     @PostMapping("/admin/update")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Boolean> updatePictureInfo(@RequestBody PictureUpdateRequest pictureUpdateRequest,HttpServletRequest httpServletRequest) {
@@ -338,12 +316,10 @@ public class PictureController {
     /**
      * 图片审核接口
      */
-    @ApiOperation(
-            value = "图片审核接口(仅管理员)",
-            notes = "用于图片审核功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "图片审核接口(仅管理员)",
+            description = "用于图片审核功能",
+            method = "POST")
     @PostMapping("/review")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Boolean> doPictureReview(@RequestBody PictureReviewRequest pictureReviewRequest,

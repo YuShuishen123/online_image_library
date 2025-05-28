@@ -1,7 +1,7 @@
 package springboot.online_image_library.controller;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,7 +21,7 @@ import java.io.IOException;
  * @date 2025/5/11
  * @description 文件管理接口
  */
-@Api(tags = "FileController")
+@Tag(name = "FileController", description = "文件相关控制器")
 @Slf4j
 @RestController
 @RequestMapping("/file")
@@ -36,12 +36,10 @@ public class FileController {
     }
 
 
-    @ApiOperation(
-            value = "测试文件上传",
-            notes = "用于测试文件上传",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "测试文件上传",
+            description = "用于测试文件上传",
+            method = "POST")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     @PostMapping("/test/Upload")
     public BaseResponse<String> testUploadFile(@RequestPart("file") MultipartFile file) {
@@ -54,12 +52,10 @@ public class FileController {
      * @param filepath 文件路径
      * @param response 响应对象
      */
-    @ApiOperation(
-            value = "测试文件下载",
-            notes = "用于测试文件下载",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "测试文件下载",
+            description = "用于测试文件下载",
+            method = "GET")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     @GetMapping("/test/download/")
     public void testDownloadFile(String filepath, HttpServletResponse response) throws IOException {

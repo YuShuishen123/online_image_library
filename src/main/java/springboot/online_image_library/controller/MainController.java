@@ -69,12 +69,10 @@ public class MainController {
     /**
      * 服务健康检查接口
      */
-    @ApiOperation(
-            value = "健康检查",
-            notes = "用于检测服务是否正常运行",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "健康检查",
+            description = "用于检测服务是否正常运行",
+            method = "GET")
     @GetMapping("/health")
     public BaseResponse<String> health() {
         return ResultUtils.success("ok");
@@ -83,12 +81,10 @@ public class MainController {
     /**
      * 切换用户和管理员接口,方便测试
      */
-    @ApiOperation(
-            value = "切换用户和管理员",
-            notes = "用于切换用户和管理员",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "切换用户和管理员",
+            description = "用于切换用户和管理员",
+            method = "GET")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @GetMapping("/switch")
     public BaseResponse<String> switchUser(HttpServletRequest hettpServletRequest) {

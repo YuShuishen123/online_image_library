@@ -3,8 +3,8 @@ package springboot.online_image_library.controller;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +33,7 @@ import static springboot.online_image_library.exception.ThrowUtils.throwIf;
  * 系统基础接口
  * @author Yu'S'hui'shen
  */
-@Api(tags = "UserController")
+@Tag(name = "UserController", description = "用户相关控制器类")
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -41,12 +41,10 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @ApiOperation(
-            value = "用户注册",
-            notes = "用于用户注册功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "用户注册",
+            description = "用于用户注册功能",
+            method = "POST")
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegistRequest userRegistRequest) {
         throwIf(userRegistRequest == null, ErrorCode.PARAMS_ERROR, "注册参数为空");
@@ -57,12 +55,10 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
-    @ApiOperation(
-            value = "用户登陆",
-            notes = "用于用户登陆功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "用户登陆",
+            description = "用于用户登陆功能",
+            method = "POST")
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
@@ -73,12 +69,10 @@ public class UserController {
     }
 
 
-    @ApiOperation(
-            value = "管理员登陆",
-            notes = "用于管理员登陆功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "管理员登陆",
+            description = "用于管理员登陆功能",
+            method = "POST")
     @PostMapping("/admin/login")
     public BaseResponse<LoginUserVO> adminLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
@@ -88,24 +82,20 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-    @ApiOperation(
-            value = "获取当前登陆用户信息",
-            notes = "用于获取当前登陆用户信息",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "获取当前登陆用户信息",
+            description = "用于获取当前登陆用户信息",
+            method = "GET")
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User user = userService.getLoginUser(request);
         return ResultUtils.success(userService.getLoginUserVO(user));
     }
 
-    @ApiOperation(
-            value = "用户登出",
-            notes = "用于用户登出功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "用户登出",
+            description = "用于用户登出功能",
+            method = "POST")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @PostMapping("/logout")
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
@@ -114,12 +104,10 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
-    @ApiOperation(
-            value = "查询其他用户信息(列表)",
-            notes = "用于获取用户信息,返回的是一个列表",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "查询其他用户信息(列表)",
+            description = "用于获取用户信息,返回的是一个列表",
+            method = "POST")
     @PostMapping("/get/vo")
     public BaseResponse<Page<UserVO>> getUserVobyId(@RequestBody UserQueryRequest userQueryRequest){
         throwIf(userQueryRequest==null,ErrorCode.PARAMS_ERROR);
@@ -136,12 +124,10 @@ public class UserController {
 
     // --------以下为管理员操作接口
 
-    @ApiOperation(
-            value = "管理员添加用户",
-            notes = "用于添加用户功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "管理员添加用户",
+            description = "用于添加用户功能",
+            method = "POST")
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
@@ -162,12 +148,10 @@ public class UserController {
     /**
      * 根据 id 获取用户（仅管理员）
      */
-    @ApiOperation(
-            value = "管理员获取用户信息(未脱敏)",
-            notes = "用于获取用户信息",
-            httpMethod = "GET",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "管理员获取用户信息(未脱敏)",
+            description = "用于获取用户信息",
+            method = "GET")
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<User> getUserById(@RequestParam(defaultValue = "0") Long id) {
@@ -183,12 +167,10 @@ public class UserController {
     /**
      * 删除用户
      */
-    @ApiOperation(
-            value = "管理员删除用户",
-            notes = "用于删除用户功能",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "管理员删除用户",
+            description = "用于删除用户功能",
+            method = "POST")
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
@@ -204,12 +186,10 @@ public class UserController {
     /**
      * 更新用户
      */
-    @ApiOperation(
-            value = "用户个人信息更新",
-            notes = "用于更新用户个人信息,普通用户只能更新自己的信息,管理员可以更新所有用户的信息",
-            httpMethod = "POST",
-            response = BaseResponse.class
-    )
+    @Operation(
+            summary = "用户个人信息更新",
+            description = "用于更新用户个人信息,普通用户只能更新自己的信息,管理员可以更新所有用户的信息",
+            method = "POST")
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
