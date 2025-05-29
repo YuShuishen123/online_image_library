@@ -6,6 +6,7 @@ import org.springframework.beans.BeanUtils;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.Picture;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
@@ -91,19 +92,23 @@ public class PictureVO implements Serializable {
      * 创建时间  
      */  
     private Date createTime;
-  
-    /**  
-     * 编辑时间  
-     */  
-    private Date editTime;  
-  
+
+    @Serial
+    private static final long serialVersionUID = 1L;
+    /**
+     * 编辑时间
+     */
+    private Date editTime;
+
 
     /**  
      * 创建用户信息  
      */  
     private UserVO user;
-  
-    private static final long serialVersionUID = 1L;  
+    /**
+     * 所属空间id
+     */
+    private Long spaceId;
   
     /**  
      * 封装类转对象  

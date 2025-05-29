@@ -45,6 +45,11 @@ public class Picture implements Serializable {
     private String name;
 
     /**
+     * 所属空间id
+     */
+    private Long spaceId;
+
+    /**
      * 简介
      */
     private String introduction;

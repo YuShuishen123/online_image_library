@@ -2,11 +2,13 @@ package springboot.online_image_library.service.impl;
 
 import cn.hutool.core.text.CharSequenceUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import springboot.online_image_library.constant.SpaceConstants;
 import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
@@ -139,7 +141,44 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         }
     }
 
+    @Override
+    public boolean isSpaceOwner(User user, Long spaceId) {
+        return this.getOne(new QueryWrapper<Space>().eq("id", spaceId).eq("userid", user.getId())) != null;
+    }
+
+    @Async("imageAsyncExecutor")
+    @Transactional
+    @Override
+    public void asyncUpdateSpacePictureInfo(long spaceId, Long picSize, boolean isAdd) {
+        // 1. 参数校验
+        if (spaceId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间ID非法");
+        }
+        if (picSize == null || picSize < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "图片大小非法");
+        }
+
+        // 2. 创建并配置更新包装器
+        LambdaUpdateWrapper<Space> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Space::getId, spaceId);
+
+        // 3. 根据 isAdd 动态设置更新值
+        if (isAdd) {
+            updateWrapper.setSql("totalCount = totalCount + 1")
+                    .setSql("totalSize = totalSize + " + picSize);
+        } else {
+            updateWrapper.setSql("totalCount = totalCount - 1")
+                    .setSql("totalSize = totalSize - " + picSize);
+        }
+
+        // 4. 执行更新并处理异常
+        boolean success = this.update(updateWrapper);
+        if (!success) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "异步更新空间图片信息失败");
+        }
+    }
 }
+
 
 
 

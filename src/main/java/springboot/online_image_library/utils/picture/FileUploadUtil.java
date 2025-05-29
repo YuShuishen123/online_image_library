@@ -67,15 +67,14 @@ public class FileUploadUtil {
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
         String uniqueFileName = UUID.randomUUID() + fileExtension;
 
-        // 构建存储路径
+        // 拼接传入的前缀和此处生成的唯一文件名,构建存储路径
         String filePath = String.format("%s/%s", basePath, uniqueFileName);
 
-        // 处理临时文件上传
+        // 处理临时文件进行上传,并且提取上传所需的参数
         File tempFile = null;
         try {
             tempFile = File.createTempFile("upload_", fileExtension);
             multipartFile.transferTo(tempFile);
-
             // 使用上下文对象封装参数
             FileUploadContext context = new FileUploadContext(filePath, tempFile, originalFilename, multipartFile);
             return fileProcessor.apply(context);
@@ -87,31 +86,31 @@ public class FileUploadUtil {
         }
     }
 
-    // 重构后的图片上传方法
-    public UploadPictureResult uploadPicture(MultipartFile multipartFile, String basePath) {
+    /**
+     * 根据图片文件和基础路径进行上传
+     *
+     * @param multipartFile 图片文件
+     * @param basePath      基础路径
+     * @return 封装后的上传结果
+     */
+    public UploadPictureResult uploadPictureUtil(MultipartFile multipartFile, String basePath) {
         return handleFileUpload(multipartFile, basePath, context -> {
+            // 调用cosManager,通过multipartFile和filePath进行上传
             PutObjectResult putObjectResult = cosManager.putPictureObject(context.filePath, context.tempFile);
+            // 获取上传返回的图片信息(包含图片处理结果等信息)
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            // 获取调用图片处理(目前两种处理方法:格式变换,生成缩略图)所单独产生的处理结果集
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
-            List<CIObject> objectList = processResults.getObjectList();
-            UploadPictureResult result = new UploadPictureResult();
-            if (CollUtil.isNotEmpty(objectList)) {
-                // 设置压缩图片地址以及缩略图的地址
-                CIObject compressedCiObject = objectList.get(0);
-                CIObject thumbnailCiObject = objectList.get(1);
-                result = buildResult(compressedCiObject, thumbnailCiObject);
-            }else{
-                result.setUrl(cosClientConfig.getHost() + "/" + context.filePath);
-            }
-            // 设置图片名称
+            // 调用图片处理集处理方法,对应图片处理字段的进行封装
+            UploadPictureResult result = processingImageProcessingResults(processResults);
+            // 填写图片信息(此处为原始图片信息,非缩略图或格式转换后的图片信息)
+            result.setOriginalImageurl(cosClientConfig.getHost() + "/" + context.filePath);
             result.setPicName(context.originalFilename);
             result.setPicFormat(imageInfo.getFormat());
             result.setPicHeight(imageInfo.getHeight());
             result.setPicWidth(imageInfo.getWidth());
             result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
             result.setPicSize(context.multipartFile.getSize());
-            // 设置原始图片地址
-            result.setOriginalImageurl(cosClientConfig.getHost() + "/" + context.filePath);
             return result;
         });
     }
@@ -124,10 +123,16 @@ public class FileUploadUtil {
         });
     }
 
-    // 构建缩略图上传结果
-    private UploadPictureResult buildResult(CIObject compressedCiObject, CIObject thumbnailCiObject) {
-        UploadPictureResult uploadPictureResult = new UploadPictureResult();
 
+    /**
+     * 构建上传图片结果信息，将压缩图和缩略图的CIObject对象存入UploadPictureResult
+     *
+     * @param compressedCiObject 压缩图的CIObject对象（如webp格式）
+     * @param thumbnailCiObject  缩略图的CIObject对象
+     * @return 返回封装好的UploadPictureResult对象，包含压缩图和缩略图的URL信息
+     */
+    private UploadPictureResult buildCiObjectResult(CIObject compressedCiObject, CIObject thumbnailCiObject) {
+        UploadPictureResult uploadPictureResult = new UploadPictureResult();
         uploadPictureResult.setThumbnailUrl(cosClientConfig.getHost() + "/" + thumbnailCiObject.getKey());
         // 设置图片为压缩后的地址
         uploadPictureResult.setUrl(cosClientConfig.getHost() + "/" + compressedCiObject.getKey());
@@ -143,20 +148,20 @@ public class FileUploadUtil {
     public UploadPictureResult uploadPictureByUrl(String fileurl, String basePath) {
         // 校验URL及其文件类型和大小
         validurl(fileurl);
-
         // 获取文件扩展名
         String fileExtension = FileUtil.getSuffix(fileurl);
         String originalFilename = fileurl.substring(fileurl.lastIndexOf("/") + 1);
-        // 处理扩展名：如果没有扩展名或不是标准图片格式，则添加JPEG
+        // 处理扩展名：如果没有扩展名或不是标准图片格式，则添加JPEG(暂时解决必应上传图片无后缀的方法)
         if (fileExtension.isEmpty() || !isImageExtension(fileExtension)) {
             fileExtension = "jpeg";
         }
-
+        // 生成唯一文件名
         String uniqueFileName = UUID.randomUUID() + "." + fileExtension;
 
+        // 构建存储路径
         String filePath = String.format("%s/%s", basePath, uniqueFileName);
 
-        // 下载图片到临时文件
+        // 构建临时文件
         File tempFile = null;
         try {
             tempFile = File.createTempFile("upload_", "." + fileExtension);
@@ -165,29 +170,20 @@ public class FileUploadUtil {
             long fileSize = tempFile.length();
             long maxFileSize = 8 * 1024 * 1024L;
             ThrowUtils.throwIf(fileSize > maxFileSize, ErrorCode.PARAMS_ERROR, "图片大小不能大于8MB");
-
             // 上传到对象存储
             PutObjectResult putObjectResult = cosManager.putPictureObject(filePath, tempFile);
+            // 提取图片上传后的基本信息以及处理结果
             ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
-            List<CIObject> objectList = processResults.getObjectList();
-            UploadPictureResult result = new UploadPictureResult();
-            if (CollUtil.isNotEmpty(objectList)) {
-                CIObject compressedCiObject = objectList.get(0);
-                CIObject thumbnailCiObject = objectList.get(1);
-                result = buildResult(compressedCiObject, thumbnailCiObject);
-            }else{
-                result.setUrl(cosClientConfig.getHost() + "/" + filePath);
-            }
+            UploadPictureResult result = processingImageProcessingResults(processResults);
             // 设置图片内容(以原图为默认)
+            result.setOriginalImageurl(cosClientConfig.getHost() + "/" + filePath);
             result.setPicName(originalFilename);
             result.setPicFormat(imageInfo.getFormat());
             result.setPicHeight(imageInfo.getHeight());
             result.setPicWidth(imageInfo.getWidth());
             result.setPicScale(NumberUtil.round(imageInfo.getWidth() * 1.0 / imageInfo.getHeight(), 2).doubleValue());
             result.setPicSize(fileSize);
-            // 设置原始图片地址
-            result.setOriginalImageurl(cosClientConfig.getHost() + "/" + filePath);
             return result;
         } catch (Exception ex) {
             log.error("URL图片上传失败: {},错误信息:{}", fileurl, ex.getMessage());
@@ -197,12 +193,35 @@ public class FileUploadUtil {
         }
     }
 
-    // 上下文对象，封装上传所需参数
+    private UploadPictureResult processingImageProcessingResults(ProcessResults processResults) {
+        List<CIObject> objectList = processResults.getObjectList();
+        UploadPictureResult result = new UploadPictureResult();
+        if (CollUtil.isNotEmpty(objectList)) {
+            CIObject compressedCiObject = objectList.get(0);
+            CIObject thumbnailCiObject = objectList.get(1);
+            // 填入处理结果部分的字段
+            result = buildCiObjectResult(compressedCiObject, thumbnailCiObject);
+        }
+        return result;
+    }
+
+
+    /**
+     * 上下文对象，封装调用云存储上传所需参数
+     *
+     * @param filePath         文件唯一路径
+     * @param tempFile         临时文件
+     * @param originalFilename 原始文件名
+     * @param multipartFile    文件
+     */
     private record FileUploadContext(String filePath,
                                      File tempFile,
                                      String originalFilename,
                                      MultipartFile multipartFile) {
     }
+
+
+
 
 
     /**

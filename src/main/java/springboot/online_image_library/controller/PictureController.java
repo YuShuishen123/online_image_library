@@ -66,16 +66,16 @@ public class PictureController {
      * 上传图片（可重新上传）
      */
     @Operation(
-            summary = "图片更新或上传",
-            description = "用于图片更新或上传,限制图片最大为8MB",
+            summary = "从本地上传或更新图片",
+            description = "用于从本地更新或上传图片,限制图片最大为8MB",
             method = "POST")
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload")
     public BaseResponse<PictureVO> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadRequest pictureUploadRequest,
             HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
+        PictureVO pictureVO = pictureService.uploadPictureByLocal(multipartFile, pictureUploadRequest, loginUser);
         return ResultUtils.success(pictureVO);
     }
 
@@ -95,7 +95,6 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         return ResultUtils.success(pictureService.uploadPictureByUrl(fileurl,pictureUploadRequest,loginUser));
     }
-
 
     @Operation(
             summary = "批量抓取图片",
@@ -117,7 +116,7 @@ public class PictureController {
      * 删除图片
      */
     @Operation(
-            summary = "删除图片(管理员)",
+            summary = "删除图片",
             description = "用于删除图片功能",
             method = "POST")
     @PostMapping("/delete")
@@ -301,6 +300,7 @@ public class PictureController {
     @PostMapping("/admin/update")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
     public BaseResponse<Boolean> updatePictureInfo(@RequestBody PictureUpdateRequest pictureUpdateRequest,HttpServletRequest httpServletRequest) {
+        // 权限验证并且构建数据库更新字段
         Picture picture = pictureService.validateAndBuildPictureUpdate(
                 pictureUpdateRequest,false, httpServletRequest);
         // 第一次删除缓存

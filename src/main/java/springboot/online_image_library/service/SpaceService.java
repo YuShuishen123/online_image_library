@@ -64,4 +64,22 @@ public interface SpaceService extends IService<Space> {
      */
     void addSpaceForNewUser(User user);
 
+
+    /**
+     * 检查用户是否为空间拥有者
+     *
+     * @param user    待检查的用户
+     * @param spaceId 空间ID
+     * @return 如果是空间拥有者返回true，否则返回false
+     */
+    boolean isSpaceOwner(User user, Long spaceId);
+
+    /**
+     * 异步更新空间图片信息
+     *
+     * @param spaceId 空间ID
+     * @param picSize 图片大小(单位:字节)
+     * @param isAdd   true为添加图片,false为删除图片
+     */
+    void asyncUpdateSpacePictureInfo(long spaceId, Long picSize, boolean isAdd);
 }

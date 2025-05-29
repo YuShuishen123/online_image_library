@@ -77,7 +77,7 @@ create table if not exists space
 
 -- 图片表添加新列,表示所属空间的id
 ALTER TABLE picture
-    ADD COLUMN spaceId bigint null comment '空间 id（为空表示公共空间）';
+    ADD COLUMN spaceId bigint null comment '空间 id（默认为空表示公共空间）';
 
 -- 创建索引
 CREATE INDEX idx_spaceId ON picture (spaceId);

@@ -38,6 +38,11 @@ public class PictureEditRequest implements Serializable {
      */  
     private List<String> tags;
 
+    /**
+     * 图片所属空间id
+     */
+    private Long spaceId;
+
     @Serial
     private static final long serialVersionUID = 1L;
 }

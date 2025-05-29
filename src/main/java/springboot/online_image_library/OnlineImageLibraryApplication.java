@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * @author Yu'S'hui'shen
  */
 @SpringBootApplication
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableAspectJAutoProxy(proxyTargetClass = true, exposeProxy = true)
 @EnableCaching
 @EnableAsync
 public class OnlineImageLibraryApplication {

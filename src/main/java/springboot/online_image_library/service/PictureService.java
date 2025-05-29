@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.common.DeleteRequest;
-import springboot.online_image_library.modle.BO.UploadPictureResult;
+import springboot.online_image_library.modle.BO.PictureUploadContext;
 import springboot.online_image_library.modle.dto.request.picture.PictureQueryRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureReviewRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureUploadByBatchRequest;
@@ -25,34 +25,24 @@ import java.util.List;
 public interface PictureService extends IService<Picture> {
 
     /**
-     * 上传图片
+     * 从本地图片上传图片
      *
      * @param multipartFile 图片文件
      * @param pictureUploadRequest     图片id(更新时附带)
      * @param loginUser 登录用户
      * @return 上传结果
      */
-    PictureVO uploadPicture(MultipartFile multipartFile,
-                            PictureUploadRequest pictureUploadRequest,
-                            User loginUser);
+    PictureVO uploadPictureByLocal(MultipartFile multipartFile,
+                                   PictureUploadRequest pictureUploadRequest,
+                                   User loginUser);
 
 
     /**
-     * 处理图片上传的公共逻辑(负责实体映射, 文件上传, 删除旧图片,审核设置等)
-     * @param picture 图片实体
-     * @param uploadResult 上传结果
-     * @param loginUser 当前登录用户
-     * @param isUpdate 是否为更新操作
-     * @param oldPictureUrl 旧图片URL(仅更新时使用)
-     * @return 图片VO对象
+     处理图片上传后的业务逻辑，包括新增或更新操作
+     * @param context 上下文对象
+     * @return 处理后的图片视图对象
      */
-    PictureVO handlePictureUpload(Picture picture,
-                                  UploadPictureResult uploadResult,
-                                  User loginUser,
-                                  boolean isUpdate,
-                                  String oldPictureUrl,
-                                  String oldPictureThumbnailUrl,
-                                  String oldPictureOriginalImageurl);
+    PictureVO handlePictureUpload(PictureUploadContext context);
 
     /**
      * 将图片查询请求转为 QueryWrapper 对象
@@ -92,7 +82,7 @@ public interface PictureService extends IService<Picture> {
     /**
      * 校验并构建图片更新对象
      * @param request 更新请求
-     * @param needCheckOwner 是否需要检查所有者
+     * @param needCheckOwner 是否需要检查所有者(如果是用户调用则需要检查)
      * @return 构建好的图片对象
      */
     Picture validateAndBuildPictureUpdate(Object request,Boolean needCheckOwner,HttpServletRequest httpServletRequest);

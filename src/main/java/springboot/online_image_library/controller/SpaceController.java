@@ -1,8 +1,8 @@
 package springboot.online_image_library.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,7 +31,7 @@ import javax.servlet.http.HttpServletRequest;
  * @date 2025/5/27
  * @description 空间相关接口控制器
  */
-@Api(tags = "SpaceController")
+@Tag(name = "SpaceController", description = "空间相关接口控制器")
 @RestController
 @RequestMapping("/space")
 public class SpaceController {
@@ -41,11 +41,10 @@ public class SpaceController {
     @Resource
     private UserService userService;
 
-    @ApiOperation(
-            value = "更新空间参数",
-            notes = "用于更新空间参数功能",
-            httpMethod = "POST"
-    )
+    @Operation(
+            summary = "更新空间参数",
+            description = "用于更新空间参数功能",
+            method = "POST")
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> updateSpace(@RequestBody SpaceUpdateRequest spaceUpdateRequest) {
@@ -70,11 +69,10 @@ public class SpaceController {
     }
 
 
-    @ApiOperation(
-            value = "添加空间",
-            notes = "用于添加空间功能",
-            httpMethod = "POST"
-    )
+    @Operation(
+            summary = "添加空间",
+            description = "用于添加空间功能",
+            method = "POST")
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Space> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
@@ -83,11 +81,10 @@ public class SpaceController {
         return ResultUtils.success(spaceService.addSpace(spaceAddRequest, user));
     }
 
-    @ApiOperation(
-            value = "删除空间",
-            notes = "用于删除空间功能",
-            httpMethod = "POST"
-    )
+    @Operation(
+            summary = "删除空间",
+            description = "用于删除空间功能",
+            method = "POST")
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Boolean> deleteSpace(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
@@ -102,11 +99,10 @@ public class SpaceController {
         return ResultUtils.success(spaceService.removeById(id));
     }
 
-    @ApiOperation(
-            value = "获取当前用户空间信息",
-            notes = "用于获取当前用户空间信息功能",
-            httpMethod = "POST"
-    )
+    @Operation(
+            summary = "获取当前用户空间信息",
+            description = "用于获取当前用户空间信息功能",
+            method = "POST")
     @PostMapping("/get")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Space> getSpace(HttpServletRequest request) {
