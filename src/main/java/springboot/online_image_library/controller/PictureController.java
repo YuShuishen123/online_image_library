@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.annotation.AuthCheck;
+import springboot.online_image_library.annotation.IdempotentCheck;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.CacheScheduleService;
 import springboot.online_image_library.common.DeleteRequest;
@@ -21,9 +22,11 @@ import springboot.online_image_library.modle.BO.PictureTagCategory;
 import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
 import springboot.online_image_library.modle.entiry.Picture;
+import springboot.online_image_library.modle.entiry.Space;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.PictureReviewStatusEnum;
 import springboot.online_image_library.service.PictureService;
+import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;
@@ -31,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Yu'S'hui'shen
@@ -61,6 +65,8 @@ public class PictureController {
     AbstractCacheClient cacheClientNoLocal;
     @Resource
     private CacheScheduleService cacheScheduleService;
+    @Resource
+    private SpaceService spaceService;
 
     /**
      * 上传图片（可重新上传）
@@ -171,7 +177,7 @@ public class PictureController {
             method = "POST")
     @PostMapping("/list/admin/page")
     @AuthCheck(mustRole = UserConstants.ADMIN_ROLE)
-    public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
+    public BaseResponse<Page<Picture>> listPicturePage(@RequestBody PictureQueryRequest pictureQueryRequest) {
 
         // 根据pictureQueryRequest,生成一个唯一的key
         String cacheKey = PICTUREVO_QUERY_KEY + pictureQueryRequest.generateCacheKey();
@@ -190,7 +196,7 @@ public class PictureController {
                     // 数据库查询逻辑
                     return pictureService.page(
                             new Page<>(current, size),
-                            pictureService.getQueryWrapper(pictureQueryRequest)
+                            pictureService.getQueryWrapper(pictureQueryRequest, 0)
                     );
                 }
         );
@@ -205,7 +211,7 @@ public class PictureController {
             description = "用于用户获取图片列表功能,普通用户只能查看审核状态为已通过的图片(强制)",
             method = "POST")
     @PostMapping("/list/page")
-    public BaseResponse<Page<PictureVO>> listPictureVoByPage(@RequestBody PictureQueryRequest pictureQueryRequest){
+    public BaseResponse<Page<PictureVO>> listPictureVoPage(@RequestBody PictureQueryRequest pictureQueryRequest) {
         // 提取分页相关信息
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
@@ -229,7 +235,7 @@ public class PictureController {
                     // 数据库查询逻辑
                     Page<Picture> picturePage = pictureService.page(
                             new Page<>(current, size),
-                            pictureService.getQueryWrapper(pictureQueryRequest)
+                            pictureService.getQueryWrapper(pictureQueryRequest, 0)
                     );
                     return pictureService.getPictureVoPage(picturePage);
                 }
@@ -279,6 +285,7 @@ public class PictureController {
             method = "POST")
     @PostMapping("/edit")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)
     public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest,
                                              HttpServletRequest request) {
         Picture picture = pictureService.validateAndBuildPictureUpdate(
@@ -329,5 +336,32 @@ public class PictureController {
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
         return ResultUtils.success(true);
     }
+
+
+    /**
+     * 获取当前用户个人空间内的所有图片,仅限自己获取
+     */
+    @Operation(
+            summary = "获取查询用户个人空间图片(分页)",
+            description = "用于分页获取当前用户个人空间内的所有图片(仅限自己获取)",
+            method = "POST")
+    @PostMapping("/user/picture")
+//    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    public BaseResponse<Page<Picture>> listSpacePicturePage(@RequestBody PictureQueryRequest pictureQueryRequest, HttpServletRequest httpServletRequest) {
+        // 提取分页相关信息
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 获取登陆用户
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        // 获取用户空间
+        Space space = spaceService.getUserSpaceFromLogUser(loginUser);
+        // 进行分页查询
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size), pictureService.getQueryWrapper(pictureQueryRequest, space.getId()));
+        // 返回Picture数据
+        return ResultUtils.success(picturePage);
+
+    }
+
 }
 

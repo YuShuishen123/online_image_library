@@ -2,9 +2,13 @@ package springboot.online_image_library.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import springboot.online_image_library.exception.BusinessException;
+import springboot.online_image_library.modle.BO.SpaceLevel;
 import springboot.online_image_library.modle.dto.request.space.SpaceAddRequest;
 import springboot.online_image_library.modle.entiry.Space;
 import springboot.online_image_library.modle.entiry.User;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Yu'S'hui'shen
@@ -82,4 +86,35 @@ public interface SpaceService extends IService<Space> {
      * @param isAdd   true为添加图片,false为删除图片
      */
     void asyncUpdateSpacePictureInfo(long spaceId, Long picSize, boolean isAdd);
+
+    /**
+     * 根据登陆者获取用户空间
+     *
+     * @param logUser 当前登陆者
+     * @return 用户空间
+     */
+    Space getUserSpaceFromLogUser(User logUser);
+
+    /**
+     * 从缓存中获取空间等级列表
+     *
+     * @param cacheKey 空间级别缓存键
+     * @return 包含空间等级列表的Optional对象
+     */
+    Optional<List<SpaceLevel>> getSpaceLeveListJsonFromCache(String cacheKey);
+
+    /**
+     * 构建空间等级列表
+     *
+     * @return 空间等级列表
+     */
+    List<SpaceLevel> buildSpaceLevelsFromEnum();
+
+    /**
+     * 缓存空间等级列表
+     *
+     * @param cacheKey 缓存键
+     * @param levels   空间等级列表
+     */
+    void cacheSpaceLevels(String cacheKey, List<SpaceLevel> levels);
 }

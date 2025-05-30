@@ -49,7 +49,7 @@ public interface PictureService extends IService<Picture> {
      * @param pictureQueryRequest 图片查询请求
      * @return 转换后的QueryWrapper 对象
      */
-    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest);
+    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest, long spaceId);
 
     /**
      * 为图片视图封装图片上传者信息

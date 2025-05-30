@@ -3,11 +3,10 @@ package springboot.online_image_library.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.bind.annotation.*;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.DeleteRequest;
@@ -16,15 +15,18 @@ import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
+import springboot.online_image_library.modle.BO.SpaceLevel;
 import springboot.online_image_library.modle.dto.request.space.SpaceAddRequest;
 import springboot.online_image_library.modle.dto.request.space.SpaceUpdateRequest;
 import springboot.online_image_library.modle.entiry.Space;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.service.UserService;
+import springboot.online_image_library.utils.commom.Object2JsonUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * @author Yu'S'hui'shen
@@ -34,12 +36,17 @@ import javax.servlet.http.HttpServletRequest;
 @Tag(name = "SpaceController", description = "空间相关接口控制器")
 @RestController
 @RequestMapping("/space")
+@Slf4j
 public class SpaceController {
 
     @Resource
     private SpaceService spaceService;
     @Resource
     private UserService userService;
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
+    @Resource
+    private Object2JsonUtils object2JsonUtils;
 
     @Operation(
             summary = "更新空间参数",
@@ -114,4 +121,23 @@ public class SpaceController {
         return ResultUtils.success(space);
 
     }
+
+
+    @Operation(
+            summary = "获取各级空间信息",
+            description = "用于获取各级空间信息",
+            method = "GET")
+    @GetMapping("/space")
+    public BaseResponse<List<SpaceLevel>> listSpaceLevel() {
+        // 定义缓存key
+        String cacheKey = "SPACE:LEVEL_LIST";
+        List<SpaceLevel> result = spaceService.getSpaceLeveListJsonFromCache(cacheKey).orElseGet(() -> {
+            List<SpaceLevel> levels = spaceService.buildSpaceLevelsFromEnum();
+            spaceService.cacheSpaceLevels(cacheKey, levels);
+            return levels;
+        });
+        return ResultUtils.success(result);
+    }
+
+
 }

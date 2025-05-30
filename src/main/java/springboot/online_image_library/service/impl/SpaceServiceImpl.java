@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,14 +16,21 @@ import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
 import springboot.online_image_library.mapper.SpaceMapper;
+import springboot.online_image_library.modle.BO.SpaceLevel;
 import springboot.online_image_library.modle.dto.request.space.SpaceAddRequest;
 import springboot.online_image_library.modle.entiry.Space;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.SpaceLevelEnum;
 import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.utils.commom.LocalLockUtil;
+import springboot.online_image_library.utils.commom.Object2JsonUtils;
 
+import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 /**
@@ -34,6 +42,11 @@ import java.util.Objects;
 @Slf4j
 public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         implements SpaceService {
+
+    @Resource
+    private RedisTemplate<String, String> redisTemplate;
+    @Resource
+    private Object2JsonUtils object2JsonUtils;
 
     @Override
     public void validSpace(Space space, boolean isAdd) {
@@ -177,6 +190,59 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "异步更新空间图片信息失败");
         }
     }
+
+
+    /**
+     * 根据登陆者获取用户空间
+     */
+    @Override
+    public Space getUserSpaceFromLogUser(User logUser) {
+        Space space = this.getOne(new QueryWrapper<Space>().eq("userid", logUser.getId()));
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "用户空间不存在");
+        return space;
+    }
+
+    @Override
+    public Optional<List<SpaceLevel>> getSpaceLeveListJsonFromCache(String cacheKey) {
+        try {
+            List<String> jsonList = redisTemplate.opsForList().range(cacheKey, 0, -1);
+            if (jsonList == null || jsonList.isEmpty()) {
+                return Optional.empty();
+            }
+            List<SpaceLevel> levels = jsonList.stream()
+                    .map(json -> object2JsonUtils.parseJson(json, SpaceLevel.class))
+                    .collect(Collectors.toList());
+            log.info("从 Redis 获取 spaceLevelList 成功");
+            return Optional.of(levels);
+        } catch (Exception e) {
+            log.error("从 Redis 解析 spaceLevelList 失败", e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public List<SpaceLevel> buildSpaceLevelsFromEnum() {
+        return Arrays.stream(SpaceLevelEnum.values())
+                .map(enumValue -> new SpaceLevel(
+                        enumValue.getValue(),
+                        enumValue.getText(),
+                        enumValue.getMaxCount(),
+                        enumValue.getMaxSize()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void cacheSpaceLevels(String cacheKey, List<SpaceLevel> levels) {
+        try {
+            List<String> jsonList = levels.stream()
+                    .map(level -> object2JsonUtils.toJson(level))
+                    .collect(Collectors.toList());
+            redisTemplate.opsForList().rightPushAll(cacheKey, jsonList);
+        } catch (Exception e) {
+            log.error("缓存空间级别数据失败", e);
+        }
+    }
+
 }
 
 

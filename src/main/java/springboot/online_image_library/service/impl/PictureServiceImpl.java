@@ -322,72 +322,86 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
 
     @Override
-    public QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest pictureQueryRequest) {
+    public QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest request, long spaceId) {
         QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
-        if (pictureQueryRequest == null) {
+        if (request == null) {
             return queryWrapper;
         }
-        // 获取查询参数
-        Long id = pictureQueryRequest.getId();
-        String name = pictureQueryRequest.getName();
-        String introduction = pictureQueryRequest.getIntroduction();
-        String category = pictureQueryRequest.getCategory();
-        List<String> tags = pictureQueryRequest.getTags();
-        Long picSize = pictureQueryRequest.getPicSize();
-        Integer picWidth = pictureQueryRequest.getPicWidth();
-        Integer picHeight = pictureQueryRequest.getPicHeight();
-        Double picScale = pictureQueryRequest.getPicScale();
-        String picFormat = pictureQueryRequest.getPicFormat();
-        String searchText = pictureQueryRequest.getSearchText();
-        Long userId = pictureQueryRequest.getUserId();
-        String sortField = pictureQueryRequest.getSortField();
-        String sortOrder = pictureQueryRequest.getSortOrder();
-        // 新增审核相关的查询参数
-        Integer reviewStatus = pictureQueryRequest.getReviewStatus();
-        String reviewMessage = pictureQueryRequest.getReviewMessage();
-        Long reviewerId = pictureQueryRequest.getReviewerId();
 
-        // 多字段搜索（名称或简介）
-        if (ObjectUtil.isNotEmpty(searchText)) {
-            queryWrapper.and(qw -> qw.like("name", searchText)
-                    .or()
-                    .like("introduction", searchText));
-        }
-        // 精确匹配字段
-        queryWrapper.eq(ObjectUtil.isNotEmpty(id), "id", id);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(userId), "userId", userId);
-
-        // 模糊匹配字段
-        queryWrapper.like(ObjectUtil.isNotEmpty(name), "name", name);
-        queryWrapper.like(ObjectUtil.isNotEmpty(introduction), "introduction", introduction);
-        queryWrapper.like(ObjectUtil.isNotEmpty(picFormat), "picFormat", picFormat);
-
-        // 其他图片信息相关的精确匹配字段
-        queryWrapper.eq(ObjectUtil.isNotEmpty(category), "category", category);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(picWidth), "picWidth", picWidth);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(picHeight), "picHeight", picHeight);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(picSize), "picSize", picSize);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(picScale), "picScale", picScale);
-        // 审核相关的字段
-        queryWrapper.eq(ObjectUtil.isNotEmpty(reviewStatus),"reviewStatus", reviewStatus);
-        queryWrapper.like(ObjectUtil.isNotEmpty(reviewMessage), "reviewMessage", reviewMessage);
-        queryWrapper.eq(ObjectUtil.isNotEmpty(reviewerId),"reviewerId", reviewerId);
-
-        // 标签查询（JSON数组格式）
-        if (CollUtil.isNotEmpty(tags)) {
-            for (String tag : tags) {
-                queryWrapper.like("tags", "\"" + tag + "\"");
-            }
-        }
-
-        // 排序
-        queryWrapper.orderBy(ObjectUtil.isNotEmpty(sortField),
-                "ascend".equals(sortOrder),
-                sortField);
-        // 空间id只能为0,否则说明是私人空间图片,不能被搜索到
-        queryWrapper.eq("spaceId", 0);
+        // 基础查询条件
+        applyBasicConditions(queryWrapper, request, spaceId);
+        // 模糊搜索条件
+        applySearchCondition(queryWrapper, request.getSearchText());
+        // 标签查询条件
+        applyTagConditions(queryWrapper, request.getTags());
+        // 排序条件
+        applySortCondition(queryWrapper, request.getSortField(), request.getSortOrder());
 
         return queryWrapper;
+    }
+
+    /**
+     * 应用基础查询条件
+     *
+     * @param wrapper 查询条件包装器
+     * @param request 图片查询请求参数
+     * @param spaceId 空间ID
+     */
+    private void applyBasicConditions(QueryWrapper<Picture> wrapper, PictureQueryRequest request, long spaceId) {
+        // 空间ID条件
+        wrapper.eq("spaceId", spaceId);
+
+        // 精确匹配字段
+        wrapper.eq(ObjectUtil.isNotEmpty(request.getId()), "id", request.getId())
+                .eq(ObjectUtil.isNotEmpty(request.getUserId()), "userId", request.getUserId())
+                .eq(ObjectUtil.isNotEmpty(request.getCategory()), "category", request.getCategory())
+                .eq(ObjectUtil.isNotEmpty(request.getPicWidth()), "picWidth", request.getPicWidth())
+                .eq(ObjectUtil.isNotEmpty(request.getPicHeight()), "picHeight", request.getPicHeight())
+                .eq(ObjectUtil.isNotEmpty(request.getPicSize()), "picSize", request.getPicSize())
+                .eq(ObjectUtil.isNotEmpty(request.getPicScale()), "picScale", request.getPicScale())
+                .eq(ObjectUtil.isNotEmpty(request.getReviewStatus()), "reviewStatus", request.getReviewStatus())
+                .eq(ObjectUtil.isNotEmpty(request.getReviewerId()), "reviewerId", request.getReviewerId());
+
+        // 模糊匹配字段
+        wrapper.like(ObjectUtil.isNotEmpty(request.getName()), "name", request.getName())
+                .like(ObjectUtil.isNotEmpty(request.getIntroduction()), "introduction", request.getIntroduction())
+                .like(ObjectUtil.isNotEmpty(request.getPicFormat()), "picFormat", request.getPicFormat())
+                .like(ObjectUtil.isNotEmpty(request.getReviewMessage()), "reviewMessage", request.getReviewMessage());
+    }
+
+    /**
+     * 应用搜索条件
+     *
+     * @param wrapper    查询条件包装器
+     * @param searchText 搜索文本
+     */
+    private void applySearchCondition(QueryWrapper<Picture> wrapper, String searchText) {
+        if (ObjectUtil.isNotEmpty(searchText)) {
+            wrapper.and(qw -> qw.like("name", searchText).or().like("introduction", searchText));
+        }
+    }
+
+    /**
+     * 应用标签查询条件
+     *
+     * @param wrapper  查询条件包装器
+     * @param tags     标签列表
+     */
+    private void applyTagConditions(QueryWrapper<Picture> wrapper, List<String> tags) {
+        if (CollUtil.isNotEmpty(tags)) {
+            tags.forEach(tag -> wrapper.like("tags", "\"" + tag + "\""));
+        }
+    }
+
+    /**
+     * 应用排序条件
+     *
+     * @param wrapper     查询条件包装器
+     * @param sortField   排序字段
+     * @param sortOrder   排序方式
+     */
+    private void applySortCondition(QueryWrapper<Picture> wrapper, String sortField, String sortOrder) {
+        wrapper.orderBy(ObjectUtil.isNotEmpty(sortField), "ascend".equals(sortOrder), sortField);
     }
 
 
