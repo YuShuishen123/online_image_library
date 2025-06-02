@@ -342,8 +342,8 @@ public class PictureController {
      * 获取当前用户个人空间内的所有图片,仅限自己获取
      */
     @Operation(
-            summary = "获取查询用户个人空间图片(分页)",
-            description = "用于分页获取当前用户个人空间内的所有图片(仅限自己获取)",
+            summary = "查询空间内所有图片(分页,)",
+            description = "用于分页查询当前用户个人空间内的所有图片(仅限自己获取)",
             method = "POST")
     @PostMapping("/user/picture")
 //    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)

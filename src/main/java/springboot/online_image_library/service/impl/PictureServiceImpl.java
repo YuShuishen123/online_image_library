@@ -261,8 +261,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return pictureVOList;
     }
 
+
     @Override
     public PictureVO handlePictureUpload(PictureUploadContext context) {
+        // 从上下文对象中解构所需参数
         Picture picture = context.getPicture();
         UploadPictureResult uploadResult = context.getUploadResult();
         User loginUser = context.getLoginUser();
@@ -273,19 +275,24 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         long spaceId = context.getSpaceId();
 
         // 映射字段
+        // 设置图片名称：优先使用传入的名称，否则使用上传结果的名称
         if (StringUtils.isNotBlank(picture.getName())) {
             picture.setName(picture.getName());
         } else {
             picture.setName(uploadResult.getPicName());
         }
+        // 设置URL相关属性
         picture.setUrl(uploadResult.getUrl());
         picture.setThumbnailUrl(uploadResult.getThumbnailUrl());
         picture.setOriginalImageurl(uploadResult.getOriginalImageurl());
+        // 设置尺寸属性
         picture.setPicSize(uploadResult.getPicSize());
         picture.setPicWidth(uploadResult.getPicWidth());
         picture.setPicHeight(uploadResult.getPicHeight());
+        // 设置格式属性
         picture.setPicScale(uploadResult.getPicScale());
         picture.setPicFormat(uploadResult.getPicFormat());
+        // 设置系统字段
         picture.setUserId(loginUser.getId());
         picture.setUpdateTime(new Date());
         picture.setSpaceId(spaceId);
@@ -293,28 +300,30 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 重置更新时间
         picture.setEditTime(new Date());
 
-        // 补充审核信息
+        // 补充审核信息（如审核状态等）
         fillReviewParams(picture, loginUser);
 
-        // 保存
+        // 保存图片实体到数据库
         if (!this.saveOrUpdate(picture)) {
+            // 保存失败时抛出业务异常
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片保存失败");
         }
         // 存入缓存
-        // 1. 获取缓存键
+        // 1. 获取缓存键（使用图片ID构建）
         String pictureUid = SINGLE_IMAGE_CACHE + picture.getId();
-        // 2. 存入缓存
+        // 2. 存入缓存（设置过期时间）
         cacheClient.update(pictureUid, picture, SINGLE_IMAGE_CACHE_EXPIRE_TIME);
         // 如果是更新操作且存在旧图片URL，尝试删除旧图片
+        // 检查旧URL是否被其他图片引用（避免误删）
         if (isUpdate && pictureMapper.selectCount(new QueryWrapper<Picture>().ne("id", picture.getId()).eq("url", oldPictureUrl)) == 0) {
-            // 存储桶内删除旧图片(异步删除)
+            // 异步删除存储桶中的旧图片文件
             fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureUrl);
             fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureThumbnailUrl);
             fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureOriginalImageurl);
         }
-        // 异步更新被上传图片的空间的参数
+        // 异步更新空间信息（增加空间已用容量）
         spaceService.asyncUpdateSpacePictureInfo(spaceId, uploadResult.getPicSize(), true);
-        // 设置上传者信息并返回
+        // 转换实体为VO对象并设置上传者信息
         PictureVO pictureVO = PictureVO.objToVo(picture);
         pictureVO.setUser(userService.getUserVO(loginUser));
         return pictureVO;

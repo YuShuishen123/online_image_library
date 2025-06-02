@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.common.DeleteRequest;
+import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.modle.BO.PictureUploadContext;
 import springboot.online_image_library.modle.dto.request.picture.PictureQueryRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureReviewRequest;
@@ -38,9 +39,22 @@ public interface PictureService extends IService<Picture> {
 
 
     /**
-     处理图片上传后的业务逻辑，包括新增或更新操作
-     * @param context 上下文对象
-     * @return 处理后的图片视图对象
+     * 处理图片上传业务逻辑
+     *
+     * <p>方法执行流程：
+     * 1. 从上下文中获取图片实体和上传结果
+     * 2. 设置图片基本属性（名称、URL、尺寸等）
+     * 3. 补充用户ID、更新时间等系统字段
+     * 4. 填充审核相关信息
+     * 5. 持久化保存图片信息到数据库
+     * 6. 更新图片缓存
+     * 7. 清理旧图片文件（更新操作时）
+     * 8. 异步更新空间图片统计信息
+     * 9. 构建并返回图片视图对象
+     *
+     * @param context 图片上传上下文对象，包含图片实体/用户信息/上传结果等
+     * @return 图片视图对象（包含图片基本信息和上传者信息）
+     * @throws BusinessException 当图片保存失败时抛出该异常
      */
     PictureVO handlePictureUpload(PictureUploadContext context);
 

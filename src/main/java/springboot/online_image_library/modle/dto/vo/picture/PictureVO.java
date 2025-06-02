@@ -16,7 +16,8 @@ import java.util.List;
  * @author Yu'S'hui'shen
  */
 @Data
-public class PictureVO implements Serializable {
+public class
+PictureVO implements Serializable {
   
     /**  
      * id  

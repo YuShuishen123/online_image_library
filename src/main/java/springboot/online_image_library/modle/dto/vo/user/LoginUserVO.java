@@ -1,7 +1,9 @@
 package springboot.online_image_library.modle.dto.vo.user;
 
+
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -13,6 +15,7 @@ import java.util.Date;
 @Data
 public class LoginUserVO implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -819574702651822509L;
 
     /**

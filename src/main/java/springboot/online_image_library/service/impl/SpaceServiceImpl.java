@@ -103,7 +103,6 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         Space space = new Space();
         // 使用Spring工具类复制同名属性
         BeanUtils.copyProperties(request, space);
-
         // 设置默认空间名称（如果请求中未提供）
         if (CharSequenceUtil.isBlank(request.getSpaceName())) {
             space.setSpaceName(SpaceConstants.DEFAULT_SPACE_NAME);
