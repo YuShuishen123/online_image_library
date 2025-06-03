@@ -227,7 +227,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                         enumValue.getText(),
                         enumValue.getMaxCount(),
                         enumValue.getMaxSize()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -235,7 +235,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         try {
             List<String> jsonList = levels.stream()
                     .map(level -> object2JsonUtils.toJson(level))
-                    .collect(Collectors.toList());
+                    .toList();
             redisTemplate.opsForList().rightPushAll(cacheKey, jsonList);
         } catch (Exception e) {
             log.error("缓存空间级别数据失败", e);

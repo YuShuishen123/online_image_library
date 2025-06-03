@@ -22,7 +22,7 @@ public class ExpansionTaskRequestSentToAPI implements Serializable {
     /**
      * 输入图像信息
      */
-    private transient Input input;
+    private Input input;
 
     /**
      * 图像处理参数
@@ -30,7 +30,7 @@ public class ExpansionTaskRequestSentToAPI implements Serializable {
     private Parameters parameters;
 
     @Data
-    public static class Input {
+    public static class Input implements Serializable {
         /**
          * 必选，图像 URL
          */

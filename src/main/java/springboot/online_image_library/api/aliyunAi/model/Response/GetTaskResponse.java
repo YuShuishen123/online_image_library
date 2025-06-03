@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class GetOutPaintingTaskResponse {
+public class GetTaskResponse {
 
     /**
      * 请求唯一标识
@@ -82,32 +82,6 @@ public class GetOutPaintingTaskResponse {
          * <p>接口成功请求不会返回该参数</p>
          */
         private String message;
-
-        /**
-         * 任务指标信息
-         */
-        private TaskMetrics taskMetrics;
     }
 
-    /**
-     * 表示任务的统计信息
-     */
-    @Data
-    public static class TaskMetrics {
-
-        /**
-         * 总任务数
-         */
-        private Integer total;
-
-        /**
-         * 成功任务数
-         */
-        private Integer succeeded;
-
-        /**
-         * 失败任务数
-         */
-        private Integer failed;
-    }
 }

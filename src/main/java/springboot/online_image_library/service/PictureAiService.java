@@ -1,7 +1,8 @@
 package springboot.online_image_library.service;
 
 import springboot.online_image_library.api.aliyunAi.model.Request.ExpansionTaskRequestFromTheFrontend;
-import springboot.online_image_library.api.aliyunAi.model.Response.CreateOutPaintingTaskResponse;
+import springboot.online_image_library.api.aliyunAi.model.Request.Text2ImageRequest;
+import springboot.online_image_library.api.aliyunAi.model.Response.CreateTaskResponse;
 import springboot.online_image_library.modle.entiry.User;
 
 /**
@@ -17,6 +18,16 @@ public interface PictureAiService {
      * @param expansionTaskRequestFromTheFrontend 包含外绘任务参数的请求对象
      * @return CreateOutPaintingTaskResponse 包含任务创建结果的响应对象
      */
-    CreateOutPaintingTaskResponse createOutPaintingTask(ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend, User logUser);
+    CreateTaskResponse createOutPaintingTask(ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend, User logUser);
+
+
+    /**
+     * 创建文字转图片任务
+     *
+     * @param text2ImageRequest 包含文字转图片任务参数的请求对象
+     * @return CreateTextToImageTaskResponse 包含任务创建结果的响应对象
+     */
+    CreateTaskResponse createTextToImageTask(Text2ImageRequest text2ImageRequest);
+
 
 }

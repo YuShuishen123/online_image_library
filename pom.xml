@@ -16,7 +16,6 @@
     </properties>
     <dependencies>
 
-        <!--Redission依赖-->
         <!-- https://mvnrepository.com/artifact/org.redisson/redisson-spring-boot-starter -->
         <dependency>
             <groupId>org.redisson</groupId>

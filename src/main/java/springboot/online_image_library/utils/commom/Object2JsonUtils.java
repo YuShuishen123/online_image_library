@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import springboot.online_image_library.exception.BusinessException;
+import springboot.online_image_library.exception.ErrorCode;
 
 import javax.annotation.Resource;
 
@@ -32,7 +34,7 @@ public class Object2JsonUtils {
             return objectMapper.readValue(json, clazz);
         } catch (JsonProcessingException e) {
             log.error("JSON反序列化失败", e);
-            throw new RuntimeException("反序列化失败", e);
+            throw new BusinessException(ErrorCode.CACHE_ERROR, "反序列化失败");
         }
     }
 
@@ -47,7 +49,7 @@ public class Object2JsonUtils {
             return objectMapper.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             log.error("JSON序列化失败", e);
-            throw new RuntimeException("序列化失败", e);
+            throw new BusinessException(ErrorCode.CACHE_ERROR, "序列化失败:" + e.getMessage());
         }
     }
 
