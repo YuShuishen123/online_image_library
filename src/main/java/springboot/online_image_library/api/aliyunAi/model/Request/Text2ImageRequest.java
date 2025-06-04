@@ -18,6 +18,11 @@ public class Text2ImageRequest implements Serializable {
      * 可选值：
      * - stable-diffusion-3.5-large
      * - stable-diffusion-3.5-large-turbo
+     * - flux-dev
+     * - flux-merged
+     * - wanx2.1-t2i-turbo 生成速度更快，通用生成模型。
+     * - wanx2.1-t2i-plus 生成图像细节更丰富，速度稍慢，通用生成模型。
+     * - wanx2.0-t2i-turbo 擅长质感人像与创意设计，速度中等，性价比高。
      */
     @Alias("model")
     private String model;

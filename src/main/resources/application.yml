@@ -58,6 +58,22 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
     # Redis 配置
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: springboot.online_image_library.controller
+
+
+aliYunAi:
+  apiKey: sk-xxxxxxxxxxxxxxxxxxx
 
 
 
@@ -65,24 +81,11 @@ logging:
   level:
     springboot.online_image_library.service: INFO
 # 接口文档配置
+# knife4j的增强配置，不需要增强可以不配
 knife4j:
   enable: true
-  openapi:
-    title: 在线图库项目接口文档
-    description: 接口测试文档
-    email: shuishenyu@gmail.com
-    concat: Yushuishen
-    url: https://docs.xiaominfo.com
-    version: v1.0
-    license: Apache 2.0
-    license-url: https://stackoverflow.com/
-    terms-of-service-url: https://stackoverflow.com/
-    group:
-      test1:
-        group-name: default
-        api-rule: package
-        api-rule-resources:
-          - springboot.online_image_library.controller
+  setting:
+    language: zh_cn
 # 对象存储配置（需要从腾讯云获取）
 cos:
   client:
