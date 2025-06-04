@@ -6,15 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.api.aliyunAi.AliYunApi;
+import springboot.online_image_library.api.aliyunAi.model.Request.CheckTaskStatusRequest;
 import springboot.online_image_library.api.aliyunAi.model.Request.ExpansionTaskRequestFromTheFrontend;
 import springboot.online_image_library.api.aliyunAi.model.Request.Text2ImageRequest;
-import springboot.online_image_library.api.aliyunAi.model.Response.CreatText2ImageTaskResponse;
+import springboot.online_image_library.api.aliyunAi.model.Request.UniversalImageEditingRequestBody;
 import springboot.online_image_library.api.aliyunAi.model.Response.CreateTaskResponse;
-import springboot.online_image_library.api.aliyunAi.model.Response.GetTaskResponse;
+import springboot.online_image_library.api.aliyunAi.model.TaskTypeEnum;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
-import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
 import springboot.online_image_library.modle.entiry.User;
@@ -62,17 +62,29 @@ public class PictureAIServiceController {
     }
 
     /**
-     * 查询扩图任务
+     * 查询任务状态
      */
-    @Operation(summary = "查询扩图任务",
-            description = "查询扩图任务",
+    @Operation(summary = "查询任务",
+            description = "查询任务",
             method = "GET")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @GetMapping("/pictureAiService/queryOutPaintingTask")
-    public BaseResponse<GetTaskResponse> queryOutPaintingTask(String taskId) {
-        ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR, "参数为空");
-        GetTaskResponse getTaskResponse = aliYunApi.getOutPaintingTask(taskId, GetTaskResponse.class);
-        return ResultUtils.success(getTaskResponse);
+    public BaseResponse<Object> queryOutPaintingTask(@RequestBody CheckTaskStatusRequest checkTaskStatusRequest) {
+        // 参数校验
+        ThrowUtils.throwIf(checkTaskStatusRequest == null || checkTaskStatusRequest.getTaskId() == null || checkTaskStatusRequest.getTaskType() == null, ErrorCode.PARAMS_ERROR, "参数为空");
+
+        // 获取任务类型枚举
+        TaskTypeEnum taskTypeEnum = TaskTypeEnum.getEnumByValue(checkTaskStatusRequest.getTaskType());
+        ThrowUtils.throwIf(taskTypeEnum == null, ErrorCode.PARAMS_ERROR, "任务类型错误");
+
+        // 获取任务类型对应的 Class 对象
+        Class<?> clazz = taskTypeEnum.getClazz();
+
+        // 调用 API 获取任务结果
+        Object result = aliYunApi.getOutPaintingTask(checkTaskStatusRequest.getTaskId(), clazz);
+
+        // 返回成功响应
+        return ResultUtils.success(result);
     }
 
     /**
@@ -88,37 +100,19 @@ public class PictureAIServiceController {
         return ResultUtils.success(pictureAiService.createTextToImageTask(text2ImageRequest));
     }
 
+
     /**
-     * 查询文生图任务结果
+     * 创建通用图片编辑任务
      */
-    @Operation(summary = "查询文生图任务结果",
-            description = "查询文生图任务结果",
-            method = "GET")
+    @Operation(summary = "创建通用图片编辑任务",
+            description = "创建通用图片编辑任务,参数填写说明文档https://bailian.console.aliyun.com/?utm_content=m_1000400275&tab=api#/api/?type=model&url=https%3A%2F%2Fhelp.aliyun.com%2Fdocument_detail%2F2796845.html&renderType=iframe:",
+            method = "POST")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
-    @GetMapping("/pictureAiService/queryText2ImagePaintingTask")
-    public BaseResponse<CreatText2ImageTaskResponse> queryText2ImagePaintingTask(String taskId) {
-        ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR, "参数为空");
-        CreatText2ImageTaskResponse creatText2ImageTaskResponse = aliYunApi.getOutPaintingTask(taskId, CreatText2ImageTaskResponse.class);
-        log.info("查询文生图任务结果 creatText2ImageTaskResponse:{}", creatText2ImageTaskResponse);
-
-        // 检查 TaskMetrics 是否为 null
-        if (creatText2ImageTaskResponse.getOutput() == null ||
-                creatText2ImageTaskResponse.getOutput().getTaskMetrics() == null) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "正在生成中,请稍等");
-        }
-
-        if (creatText2ImageTaskResponse.getOutput().getTaskMetrics().getSucceeded() == 0) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文生图任务失败");
-        }
-        return ResultUtils.success(creatText2ImageTaskResponse);
+    @PostMapping("/pictureAiService/createUniversalImageTask")
+    public BaseResponse<CreateTaskResponse> createUniversalImageTask(@RequestBody UniversalImageEditingRequestBody universalImageEditingRequestBody) {
+        ThrowUtils.throwIf(universalImageEditingRequestBody == null, ErrorCode.PARAMS_ERROR, "参数为空");
+        return ResultUtils.success(pictureAiService.createUniversalImageTask(universalImageEditingRequestBody));
     }
-
-
-
-
-
-
-
 
 
 }

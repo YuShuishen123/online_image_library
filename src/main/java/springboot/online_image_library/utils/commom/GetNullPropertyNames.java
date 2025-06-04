@@ -12,8 +12,10 @@ import java.util.List;
  * @date 2025/5/27
  * @description 获取对象中值为 null 的属性
  */
-
 public class GetNullPropertyNames {
+
+    private GetNullPropertyNames() {
+    }
 
     /**
      * 获取对象中值为 null 的属性名
@@ -21,7 +23,7 @@ public class GetNullPropertyNames {
      * @param source 源对象
      * @return null 值的属性名数组
      */
-    private static String[] getNullPropertyNames(Object source) {
+    public static String[] getNullPropertyNames(Object source) {
         BeanWrapper src = new BeanWrapperImpl(source);
         PropertyDescriptor[] pds = src.getPropertyDescriptors();
         List<String> nullPropertyNames = new ArrayList<>();

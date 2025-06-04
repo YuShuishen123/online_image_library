@@ -25,6 +25,12 @@ public class CreatText2ImageTaskResponse {
         @JsonProperty("task_status")
         private String taskStatus;
 
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("message")
+        private String message;
+
         @JsonProperty("submit_time")
         private String submitTime;
 

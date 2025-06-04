@@ -8,6 +8,7 @@ import springboot.online_image_library.api.aliyunAi.AliYunApi;
 import springboot.online_image_library.api.aliyunAi.model.Request.ExpansionTaskRequestFromTheFrontend;
 import springboot.online_image_library.api.aliyunAi.model.Request.ExpansionTaskRequestSentToAPI;
 import springboot.online_image_library.api.aliyunAi.model.Request.Text2ImageRequest;
+import springboot.online_image_library.api.aliyunAi.model.Request.UniversalImageEditingRequestBody;
 import springboot.online_image_library.api.aliyunAi.model.Response.CreateTaskResponse;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
@@ -65,6 +66,15 @@ public class PictureAiServiceImpl implements PictureAiService {
     public CreateTaskResponse createTextToImageTask(Text2ImageRequest text2ImageRequest) {
         try {
             return aliYunApi.createTextToImageTask(text2ImageRequest);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, e.getMessage());
+        }
+    }
+
+    @Override
+    public CreateTaskResponse createUniversalImageTask(UniversalImageEditingRequestBody universalImageEditingRequestBody) {
+        try {
+            return aliYunApi.createUniversalImageTask(universalImageEditingRequestBody);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, e.getMessage());
         }
