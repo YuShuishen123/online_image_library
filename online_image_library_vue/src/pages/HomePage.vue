@@ -126,7 +126,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
-import { listPictureVoByPageUsingPost } from '@/api/pictureController'
+import { listPictureVoPage } from '@/api/pictureController'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { message } from 'ant-design-vue'
 
@@ -165,7 +165,7 @@ const fetchPictureList = async () => {
 
   loading.value = true
   try {
-    const res = await listPictureVoByPageUsingPost(requestBody.value)
+    const res = await listPictureVoPage(requestBody.value)
 
     if (res.data.code === 200 && res.data) {
       pictureList.value = res.data.data?.records || []
@@ -176,7 +176,7 @@ const fetchPictureList = async () => {
       total.value = 0
     }
   } catch (error) {
-    console.error('获取图片列表失败:', error)
+    console.error('获取图片列表失败啦:', error)
     pictureList.value = []
     total.value = 0
   } finally {

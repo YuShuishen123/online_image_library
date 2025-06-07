@@ -50,7 +50,7 @@ import { computed, h, ref } from 'vue'
 import type { MenuProps } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 import { type RouteRecordRaw, useRouter } from 'vue-router'
-import { userLogoutUsingPost } from '@/api/userController'
+import { userLogout } from '@/api/userController'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { HomeOutlined } from '@ant-design/icons-vue'
 import checkAccess from '@/access/checkAccess'
@@ -65,7 +65,7 @@ router.afterEach((to) => {
 
 // 退出登录
 const logout = async () => {
-  const res = await userLogoutUsingPost()
+  const res = await userLogout()
   if (res.data.code === 200) {
     // 清空用户信息
     await loginUserStore.setLoginUser({

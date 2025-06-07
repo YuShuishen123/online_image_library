@@ -63,7 +63,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { deleteUserUsingPost, getUserVobyIdUsingPost } from '@/api/userController'
+import { deleteUser, getUserVobyId } from '@/api/userController'
 import dayjs from 'dayjs'
 
 const columns = [
@@ -120,7 +120,7 @@ const doDelete = async (id: number) => {
   if (!id) {
     return
   }
-  const res = await deleteUserUsingPost({ id })
+  const res = await deleteUser({ id })
   if (res.data.code === 200) {
     message.success('删除成功')
     fetchData()
@@ -141,7 +141,7 @@ const pagination = reactive({
 })
 // 获取数据
 const fetchData = async () => {
-  const res = await getUserVobyIdUsingPost({
+  const res = await getUserVobyId({
     ...searchParams,
   })
   if (res.data.data) {

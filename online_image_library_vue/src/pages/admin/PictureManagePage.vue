@@ -42,11 +42,6 @@
         </a-form-item>
       </a-form>
 
-      <!-- 操作按钮 -->
-      <div class="table-operations" style="margin: 16px 0">
-        <a-button type="primary" @click="showUploadModal"> <upload-outlined /> 上传图片 </a-button>
-      </div>
-
       <!-- 图片列表 -->
       <a-table
         :columns="columns"
@@ -161,11 +156,11 @@ import { UploadOutlined } from '@ant-design/icons-vue'
 import type { TablePaginationConfig } from 'ant-design-vue'
 import PictureUploader from '@/components/PictureUploader.vue'
 import {
-  listPictureByPageUsingPost,
-  updatePictureInfoUsingPost,
-  deletePictureUsingPost,
-  doPictureReviewUsingPost,
-  listPictureTagCategoryUsingGet,
+  listPicturePage,
+  updatePictureInfo,
+  deletePicture,
+  doPictureReview,
+  listPictureTagCategory,
 } from '@/api/pictureController'
 
 const columns = [
@@ -263,7 +258,7 @@ const reviewForm = ref<API.PictureReviewRequest>({
 const fetchPictureList = async () => {
   loading.value = true
   try {
-    const res = await listPictureByPageUsingPost({
+    const res = await listPicturePage({
       ...searchForm.value,
       current: pagination.value.current,
       pageSize: pagination.value.pageSize,
@@ -271,7 +266,7 @@ const fetchPictureList = async () => {
       sortOrder: searchForm.value.sortOrder,
     })
     if (res.data?.code === 200 && res.data?.data) {
-      const responseData = res.data.data as API.PagePictureVO_
+      const responseData = res.data.data as API.PagePictureVO
       pictureList.value = responseData.records || []
       pagination.value.total = responseData.total || 0
     }
@@ -285,7 +280,7 @@ const fetchPictureList = async () => {
 
 const fetchCategoriesAndTags = async () => {
   try {
-    const res = await listPictureTagCategoryUsingGet()
+    const res = await listPictureTagCategory()
     if (res.data?.code === 200 && res.data?.data) {
       const data = res.data.data as API.PictureTagCategory
       categories.value = data.categoryList || []
@@ -331,7 +326,7 @@ const handleEdit = (record: API.PictureVO) => {
 
 const handleEditSubmit = async () => {
   try {
-    const res = await updatePictureInfoUsingPost(editForm.value)
+    const res = await updatePictureInfo(editForm.value)
     if (res.data?.code === 200) {
       message.success('更新成功')
       editModalVisible.value = false
@@ -356,7 +351,7 @@ const handleReview = (record: API.PictureVO) => {
 
 const handleReviewSubmit = async () => {
   try {
-    const res = await doPictureReviewUsingPost(reviewForm.value)
+    const res = await doPictureReview(reviewForm.value)
     if (res.data?.code === 200) {
       message.success('审核成功')
       reviewModalVisible.value = false
@@ -370,7 +365,7 @@ const handleReviewSubmit = async () => {
 
 const handleDelete = async (record: API.PictureVO) => {
   try {
-    const res = await deletePictureUsingPost({ id: record.id })
+    const res = await deletePicture({ id: record.id })
     if (res.data?.code === 200) {
       message.success('删除成功')
       fetchPictureList()
@@ -433,9 +428,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table-operations {
-  margin-bottom: 16px;
-}
 .picture-manage-page {
   min-height: calc(100vh - 120px); /* 120px可根据你的header/footer高度调整 */
   padding: 24px;

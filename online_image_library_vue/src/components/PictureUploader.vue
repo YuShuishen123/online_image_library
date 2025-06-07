@@ -59,10 +59,10 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import type { UploadProps } from 'ant-design-vue'
 import {
-  uploadPictureUsingPost,
-  uploadPictureByUrlUsingPost,
-  updatePictureInfoUsingPost,
-  deletePictureUsingPost,
+  uploadPicture,
+  uploadPictureByUrl,
+  updatePictureInfo,
+  deletePicture,
 } from '@/api/pictureController'
 
 const { categories, tags } = defineProps<{
@@ -97,7 +97,11 @@ const uploadInfoForm = ref<{
 const handleCustomFileUpload = async (options: any) => {
   uploading.value = true
   try {
-    const res = await uploadPictureUsingPost({}, {}, options.file as File)
+    const res = await uploadPicture({
+      pictureUploadRequest: {
+        file: options.file as File,
+      },
+    })
     if (res.data?.code === 200 && res.data?.data) {
       uploadedImage.value = res.data.data
       uploadInfoForm.value.name = typeof res.data.data.name === 'string' ? res.data.data.name : ''
@@ -118,7 +122,11 @@ const handleUrlUpload = async () => {
   }
   uploading.value = true
   try {
-    const res = await uploadPictureByUrlUsingPost({ fileurl: uploadUrl.value })
+    const res = await uploadPictureByUrl({
+      pictureUploadRequest: {
+        url: uploadUrl.value,
+      },
+    })
     if (res.data?.code === 200 && res.data?.data) {
       uploadedImage.value = res.data.data
       uploadInfoForm.value.name = typeof res.data.data.name === 'string' ? res.data.data.name : ''
@@ -133,7 +141,7 @@ const handleUrlUpload = async () => {
 const handleSubmit = async () => {
   if (!uploadedImage.value) return
   try {
-    const res = await updatePictureInfoUsingPost({
+    const res = await updatePictureInfo({
       id: uploadedImage.value.id,
       ...uploadInfoForm.value,
     })
@@ -149,7 +157,7 @@ const handleSubmit = async () => {
 
 const handleCancel = async () => {
   if (uploadedImage.value?.id) {
-    await deletePictureUsingPost({ id: uploadedImage.value.id })
+    await deletePicture({ id: uploadedImage.value.id })
   }
   emit('cancel')
   resetForm()

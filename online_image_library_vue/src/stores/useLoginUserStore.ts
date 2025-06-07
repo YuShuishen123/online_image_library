@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getLoginUserUsingGet } from '@/api/userController'
+import { getLoginUser } from '@/api/userController'
 
 export const useLoginUserStore = defineStore('loginUser', () => {
   // 初始化为未登录状态
@@ -17,7 +17,7 @@ export const useLoginUserStore = defineStore('loginUser', () => {
 
   async function fetchLoginUser() {
     // 调用api获取登陆用户
-    getLoginUserUsingGet().then((res) => {
+    getLoginUser().then((res) => {
       if (res.data.code === 200) {
         if (res.data.data) {
           setLoginUser(res.data.data)
