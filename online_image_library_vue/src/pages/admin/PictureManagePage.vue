@@ -7,24 +7,14 @@
           <a-input v-model:value="searchForm.name" placeholder="请输入图片名称" />
         </a-form-item>
         <a-form-item label="分类" name="category">
-          <a-select
-            v-model:value="searchForm.category"
-            placeholder="请选择分类"
-            style="width: 200px"
-            allowClear
-          >
+          <a-select v-model:value="searchForm.category" placeholder="请选择分类" style="width: 200px" allowClear>
             <a-select-option v-for="category in categories" :key="category" :value="category">
               {{ category }}
             </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="审核状态" name="reviewStatus">
-          <a-select
-            v-model:value="searchForm.reviewStatus"
-            placeholder="请选择审核状态"
-            style="width: 200px"
-            allowClear
-          >
+          <a-select v-model:value="searchForm.reviewStatus" placeholder="请选择审核状态" style="width: 200px" allowClear>
             <a-select-option :value="0">待审核</a-select-option>
             <a-select-option :value="1">已通过</a-select-option>
             <a-select-option :value="2">已拒绝</a-select-option>
@@ -43,13 +33,8 @@
       </a-form>
 
       <!-- 图片列表 -->
-      <a-table
-        :columns="columns"
-        :data-source="pictureList"
-        :loading="loading"
-        :pagination="pagination"
-        @change="handleTableChange"
-      >
+      <a-table :columns="columns" :data-source="pictureList" :loading="loading" :pagination="pagination"
+        @change="handleTableChange">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'thumbnailUrl'">
             <a-image :width="100" :src="record.thumbnailUrl" :preview="{ src: record.url }" />
@@ -83,27 +68,14 @@
     </a-card>
 
     <!-- 上传弹窗 -->
-    <a-modal
-      v-model:visible="uploadModalVisible"
-      title="上传图片"
-      :footer="null"
-      @cancel="handleUploadCancel"
-    >
-      <picture-uploader
-        :categories="categories"
-        :tags="tags"
-        @upload-success="handleUploadSuccess"
-        @cancel="handleUploadCancel"
-      />
+    <a-modal v-model:visible="uploadModalVisible" title="上传图片" :footer="null" @cancel="handleUploadCancel">
+      <picture-uploader :categories="categories" :tags="tags" @upload-success="handleUploadSuccess"
+        @cancel="handleUploadCancel" />
     </a-modal>
 
     <!-- 其余弹窗等内容保持不变 -->
-    <a-modal
-      v-model:visible="editModalVisible"
-      title="编辑图片信息"
-      @ok="handleEditSubmit"
-      @cancel="editModalVisible = false"
-    >
+    <a-modal v-model:visible="editModalVisible" title="编辑图片信息" @ok="handleEditSubmit"
+      @cancel="editModalVisible = false">
       <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="图片名称" required>
           <a-input v-model:value="editForm.name" />
@@ -116,24 +88,16 @@
           </a-select>
         </a-form-item>
         <a-form-item label="标签">
-          <a-select
-            v-model:value="editForm.tags"
-            mode="multiple"
-            placeholder="请选择标签"
-            :options="tags.map((tag) => ({ label: tag, value: tag }))"
-          />
+          <a-select v-model:value="editForm.tags" mode="multiple" placeholder="请选择标签"
+            :options="tags.map((tag) => ({ label: tag, value: tag }))" />
         </a-form-item>
         <a-form-item label="简介">
           <a-textarea v-model:value="editForm.introduction" :rows="4" />
         </a-form-item>
       </a-form>
     </a-modal>
-    <a-modal
-      v-model:visible="reviewModalVisible"
-      title="图片审核"
-      @ok="handleReviewSubmit"
-      @cancel="reviewModalVisible = false"
-    >
+    <a-modal v-model:visible="reviewModalVisible" title="图片审核" @ok="handleReviewSubmit"
+      @cancel="reviewModalVisible = false">
       <a-form :model="reviewForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="审核结果" required>
           <a-radio-group v-model:value="reviewForm.reviewStatus">
@@ -152,9 +116,7 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { UploadOutlined } from '@ant-design/icons-vue'
 import type { TablePaginationConfig } from 'ant-design-vue'
-import PictureUploader from '@/components/PictureUploader.vue'
 import {
   listPicturePage,
   updatePictureInfo,
@@ -226,9 +188,6 @@ const searchForm = ref<API.PictureQueryRequest>({
 
 const uploadModalVisible = ref(false)
 
-const showUploadModal = () => {
-  uploadModalVisible.value = true
-}
 
 const handleUploadSuccess = () => {
   uploadModalVisible.value = false
@@ -429,9 +388,11 @@ onMounted(() => {
 
 <style scoped>
 .picture-manage-page {
-  min-height: calc(100vh - 120px); /* 120px可根据你的header/footer高度调整 */
+  min-height: calc(100vh - 120px);
+  /* 120px可根据你的header/footer高度调整 */
   padding: 24px;
   box-sizing: border-box;
-  background: #fff; /* 保证内容区背景为白色 */
+  background: #fff;
+  /* 保证内容区背景为白色 */
 }
 </style>
