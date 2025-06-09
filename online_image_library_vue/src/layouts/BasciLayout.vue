@@ -11,13 +11,8 @@
         <div class="footer-content">
           <div class="copyright">
             <span>© 2023-{{ currentYear }} </span>
-            <a
-              href="https://github.com/YuShuishen123?tab=repositories"
-              target="_blank"
-              class="footer-link"
-            >
-              Github</a
-            >
+            <a class="footer-link" href="https://github.com/YuShuishen123?tab=repositories" target="_blank">
+              Github</a>
             <span> | Create By YuShuishen</span>
           </div>
           <div class="footer-info">

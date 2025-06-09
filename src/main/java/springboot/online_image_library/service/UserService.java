@@ -2,8 +2,10 @@ package springboot.online_image_library.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
-import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserInfo;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 
@@ -55,17 +57,27 @@ public interface UserService extends IService<User> {
      * @param userAccount 账号
      * @param userPassword 密码
      * @param response 响应
+     * @param isAdmin 是否为管理员
      * @return 登陆用户视图
      */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin);
+    LoginUserInfo userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin);
 
     /**
-     * 获取当前登录用户
+     * 获取当前登录用户的个人信息
      *
      * @param request
-     * @return
+     * @return 当前登录用户信息
      */
-    User getLoginUser(HttpServletRequest request);
+    LoginUserInfo getLoginUser(HttpServletRequest request);
+
+
+    /**
+     * 获取当前登录状态以及角色
+     *
+     * @param request 请求,提供cookie
+     * @return 登录状态(id和角色)
+     */
+    LoginState getLoginState(HttpServletRequest request);
 
     /**
      * 密码加密
@@ -88,16 +100,23 @@ public interface UserService extends IService<User> {
      * @param user
      * @return LoginUserVO对象
      */
-    LoginUserVO getLoginUserVO(User user);
+    LoginUserInfo getLoginUserVO(User user);
 
     /**
      * 是否为管理员
      *
-     * @param user
-     * @return
+     * @param loginState 登录状态
+     * @return 是否为管理员
      */
-    boolean isAdmin(User user);
+    boolean isAdmin(LoginState loginState);
 
 
-
+    /**
+     * 上传头像
+     *
+     * @param file          头像文件
+     * @param loginUserInfo 登陆用户
+     * @return 头像url
+     */
+    String uploadAvatar(MultipartFile file, LoginUserInfo loginUserInfo);
 }

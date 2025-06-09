@@ -28,6 +28,7 @@ import springboot.online_image_library.modle.BO.PictureUploadContext;
 import springboot.online_image_library.modle.BO.UploadPictureResult;
 import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.Picture;
 import springboot.online_image_library.modle.entiry.Space;
@@ -87,7 +88,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      * @param multipartFile        上传的MultipartFile文件对象（仅在 isUrlUpload 为 false 时使用）
      * @return 返回处理后的 PictureVO 对象，包含上传结果信息
      */
-    private PictureVO handleCommonPictureUpload(PictureUploadRequest pictureUploadRequest, User loginUser,
+    private PictureVO handleCommonPictureUpload(PictureUploadRequest pictureUploadRequest, LoginState loginUser,
                                                 String uploadPathPrefix, boolean isUrlUpload, String fileurl, MultipartFile multipartFile) {
         // 1. 参数校验
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
@@ -161,7 +162,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         return handlePictureUpload(PictureUploadContext.builder()
                 .picture(picture)
                 .uploadResult(uploadResult)
-                .loginUser(loginUser)
+                .loginState(loginUser)
                 .isUpdate(isUpdate)
                 .oldPictureUrl(oldPictureUrl)
                 .oldPictureThumbnailUrl(oldPictureThumbnailUrl)
@@ -174,24 +175,24 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Override
     public PictureVO uploadPictureByLocal(MultipartFile multipartFile,
                                           PictureUploadRequest pictureUploadRequest,
-                                          User loginUser) {
+                                          LoginState loginState) {
         // 调用公共方法，传递本地上传的参数
-        return handleCommonPictureUpload(pictureUploadRequest, loginUser,
-                String.format("public/%d", loginUser.getId()), false, null, multipartFile);
+        return handleCommonPictureUpload(pictureUploadRequest, loginState,
+                String.format("public/%d", loginState.getId()), false, null, multipartFile);
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public PictureVO uploadPictureByUrl(String fileurl,
                                         PictureUploadRequest pictureUploadRequest,
-                                        User loginUser) {
+                                        LoginState loginState) {
         // 调用公共方法，传递URL上传的参数
-        return handleCommonPictureUpload(pictureUploadRequest, loginUser,
-                String.format("public/%d", loginUser.getId()), true, fileurl, null);
+        return handleCommonPictureUpload(pictureUploadRequest, loginState,
+                String.format("public/%d", loginState.getId()), true, fileurl, null);
     }
 
     @Override
-    public List<PictureVO> uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+    public List<PictureVO> uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, LoginState loginState) {
         // 参数校验
         fileUploadUtil.validateBatchUploadParams(pictureUploadByBatchRequest);
 
@@ -204,7 +205,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         log.info(imageDataList.toString());
 
         // 上传图片
-        return uploadImages(imageDataList, pictureUploadByBatchRequest.getCount(), loginUser);
+        return uploadImages(imageDataList, pictureUploadByBatchRequest.getCount(), loginState);
     }
 
     @Override
@@ -227,10 +228,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      *
      * @param imageDataList 图片数据列表
      * @param maxCount      最大上传数量
-     * @param loginUser     登录用户
+     * @param loginState     登录用户
      * @return 成功上传的数量
      */
-    private List<PictureVO> uploadImages(List<FileUploadUtil.ImageData> imageDataList, int maxCount, User loginUser) {
+    private List<PictureVO> uploadImages(List<FileUploadUtil.ImageData> imageDataList, int maxCount, LoginState loginState) {
         int uploadSuccessCount = 0;
         List<PictureVO> pictureVOList = new ArrayList<>();
         PictureUploadRequest uploadRequest = new PictureUploadRequest();
@@ -246,7 +247,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                     uploadRequest.setName(imageData.getTitle());
                     // 使用注入的代理调用事务方法
                     // 从代理对象调用,绕过this调用
-                    PictureVO pictureVO = ((PictureService) AopContext.currentProxy()).uploadPictureByUrl(fileUrl, uploadRequest, loginUser);
+                    PictureVO pictureVO = ((PictureService) AopContext.currentProxy()).uploadPictureByUrl(fileUrl, uploadRequest, loginState);
                     pictureVOList.add(pictureVO);
                     log.info("第{}张图片上传成功, id = {},url = {}", uploadSuccessCount + 1, pictureVO.getId(), pictureVO.getUrl());
                     uploadSuccessCount++;
@@ -267,7 +268,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 从上下文对象中解构所需参数
         Picture picture = context.getPicture();
         UploadPictureResult uploadResult = context.getUploadResult();
-        User loginUser = context.getLoginUser();
+        LoginState loginState = context.getLoginState();
         boolean isUpdate = context.isUpdate();
         String oldPictureUrl = context.getOldPictureUrl();
         String oldPictureThumbnailUrl = context.getOldPictureThumbnailUrl();
@@ -293,7 +294,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setPicScale(uploadResult.getPicScale());
         picture.setPicFormat(uploadResult.getPicFormat());
         // 设置系统字段
-        picture.setUserId(loginUser.getId());
+        picture.setUserId(loginState.getId());
         picture.setUpdateTime(new Date());
         picture.setSpaceId(spaceId);
 
@@ -301,7 +302,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         picture.setEditTime(new Date());
 
         // 补充审核信息（如审核状态等）
-        fillReviewParams(picture, loginUser);
+        fillReviewParams(picture, loginState);
 
         // 保存图片实体到数据库
         if (!this.saveOrUpdate(picture)) {
@@ -317,15 +318,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 检查旧URL是否被其他图片引用（避免误删）
         if (isUpdate && pictureMapper.selectCount(new QueryWrapper<Picture>().ne("id", picture.getId()).eq("url", oldPictureUrl)) == 0) {
             // 异步删除存储桶中的旧图片文件
-            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureUrl);
-            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureThumbnailUrl);
-            fileDeleteUtil.asyncCheckAndDeleteFile(oldPictureOriginalImageurl);
+            fileDeleteUtil.deleteFile(oldPictureUrl);
+            fileDeleteUtil.deleteFile(oldPictureThumbnailUrl);
+            fileDeleteUtil.deleteFile(oldPictureOriginalImageurl);
         }
         // 异步更新空间信息（增加空间已用容量）
         spaceService.asyncUpdateSpacePictureInfo(spaceId, uploadResult.getPicSize(), true);
         // 转换实体为VO对象并设置上传者信息
         PictureVO pictureVO = PictureVO.objToVo(picture);
-        pictureVO.setUser(userService.getUserVO(loginUser));
+        UserVO userVO = userService.getUserVO(userService.getById(loginState.getId()));
+        pictureVO.setUser(userVO);
         return pictureVO;
     }
 
@@ -413,7 +415,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         wrapper.orderBy(ObjectUtil.isNotEmpty(sortField), "ascend".equals(sortOrder), sortField);
     }
 
-
     @Override
     public PictureVO getPictureVO(Picture picture) {
         PictureVO pictureVO = PictureVO.objToVo(picture);
@@ -490,10 +491,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String thumbnailUrl = oldPicture.getThumbnailUrl();
         String originalImageurl = oldPicture.getOriginalImageurl();
         // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
+        LoginState loginState = userService.getLoginState(request);
 
         // 仅本人或者管理员可以删除
-        if (!oldPicture.getUserId().equals(loginUser.getId()) &&!userService.isAdmin(loginUser)) {
+        if (!oldPicture.getUserId().equals(loginState.getId()) && !userService.isAdmin(loginState)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         // 1.数据库删除
@@ -506,9 +507,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
         // 3.存储桶内删除(异步删除)
         if (pictureMapper.selectCount(new QueryWrapper<Picture>().eq("url", url)) == 0) {
-            fileDeleteUtil.asyncCheckAndDeleteFile(url);
-            fileDeleteUtil.asyncCheckAndDeleteFile(thumbnailUrl);
-            fileDeleteUtil.asyncCheckAndDeleteFile(originalImageurl);
+            fileDeleteUtil.deleteFile(url);
+            fileDeleteUtil.deleteFile(thumbnailUrl);
+            fileDeleteUtil.deleteFile(originalImageurl);
         }
         return true;
     }
@@ -557,18 +558,18 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 || CollectionUtils.isNotEmpty(tags);
         ThrowUtils.throwIf(!hasValidUpdate, ErrorCode.PARAMS_ERROR, "至少需要一个有效更新字段");
 
-        User loginUser = userService.getLoginUser(httpServletRequest);
+        LoginState loginState = userService.getLoginState(httpServletRequest);
         Picture oldPicture = getPictureById(id);
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
 
         // 权限校验
         if (Boolean.TRUE.equals(needCheckOwner)) {
-            ThrowUtils.throwIf(!oldPicture.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
+            ThrowUtils.throwIf(!oldPicture.getUserId().equals(loginState.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
         }
 
         // 空间处理
         if (spaceId != null) {
-            handleSpaceChange(oldPicture, spaceId, loginUser);
+            handleSpaceChange(oldPicture, spaceId, loginState);
         }
 
         // 构建 picture 对象
@@ -584,7 +585,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (spaceId != null) picture.setSpaceId(spaceId == 0 ? 0L : spaceId);
         // 图片合法性校验
         validPicture(picture);
-        fillReviewParams(picture, loginUser);
+        fillReviewParams(picture, loginState);
         return picture;
     }
 
@@ -593,16 +594,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      *
      * @param oldPicture 旧图片对象
      * @param newSpaceId 新空间 ID
-     * @param loginUser  当前登录用户
+     * @param loginState  当前登录用户
      */
-    private void handleSpaceChange(Picture oldPicture, Long newSpaceId, User loginUser) {
+    private void handleSpaceChange(Picture oldPicture, Long newSpaceId, LoginState loginState) {
         Long oldSpaceId = oldPicture.getSpaceId();
         Long picSize = oldPicture.getPicSize();
 
         // 移入私有空间
         if (oldSpaceId == 0 && newSpaceId != 0) {
             log.info("移入私有空间");
-            Space space = getAndCheckSpaceOwnership(newSpaceId, loginUser);
+            Space space = getAndCheckSpaceOwnership(newSpaceId, loginState);
             ThrowUtils.throwIf(space.getTotalSize() >= space.getMaxSize(), ErrorCode.OPERATION_ERROR, "空间容量不足");
             spaceService.asyncUpdateSpacePictureInfo(newSpaceId, picSize, true);
         }
@@ -616,8 +617,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 移出到公共空间
         else if (newSpaceId == 0) {
             log.info("移到公共空间");
-            Space oldSpace = getAndCheckSpaceOwnership(oldSpaceId, loginUser);
-            ThrowUtils.throwIf(!oldSpace.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
+            Space oldSpace = getAndCheckSpaceOwnership(oldSpaceId, loginState);
+            ThrowUtils.throwIf(!oldSpace.getUserId().equals(loginState.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
             spaceService.asyncUpdateSpacePictureInfo(oldSpaceId, picSize, false);
         }
     }
@@ -626,19 +627,19 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      * 检查空间存在性和拥有权
      *
      * @param spaceId   空间 ID
-     * @param loginUser 当前用户
+     * @param loginState 当前用户
      * @return 合法的空间对象
      */
-    private Space getAndCheckSpaceOwnership(Long spaceId, User loginUser) {
+    private Space getAndCheckSpaceOwnership(Long spaceId, LoginState loginState) {
         Space space = spaceService.getById(spaceId);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-        ThrowUtils.throwIf(!space.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
+        ThrowUtils.throwIf(!space.getUserId().equals(loginState.getId()), ErrorCode.NO_AUTH_ERROR, "无权限修改");
         return space;
     }
 
 
     @Override
-    public void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser) {
+    public void doPictureReview(PictureReviewRequest pictureReviewRequest, LoginState loginState) {
         // 图片id必须存在且为有效值
         ThrowUtils.throwIf(pictureReviewRequest.getId() == null
                 || pictureReviewRequest.getId() <= 0
@@ -654,18 +655,18 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture newPicture = new Picture();
         BeanUtils.copyProperties(pictureReviewRequest, newPicture);
         // 保存管理人员id,以及审核时间
-        newPicture.setReviewerId(loginUser.getId());
+        newPicture.setReviewerId(loginState.getId());
         newPicture.setReviewTime(new Date());
         // 操作数据库
         ThrowUtils.throwIf(!updateById(newPicture),ErrorCode.OPERATION_ERROR,"审核提交失败");
     }
 
     @Override
-    public void fillReviewParams(Picture picture, User loginUser) {
-        if (userService.isAdmin(loginUser)) {
+    public void fillReviewParams(Picture picture, LoginState loginState) {
+        if (userService.isAdmin(loginState)) {
             // 管理员自动过审
             picture.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-            picture.setReviewerId(loginUser.getId());
+            picture.setReviewerId(loginState.getId());
             picture.setReviewMessage("管理员自动过审");
             picture.setReviewTime(new Date());
         } else {

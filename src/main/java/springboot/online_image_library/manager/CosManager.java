@@ -35,7 +35,7 @@ public class CosManager {
     private COSClient cosClient;
 
     /**
-     * 上传对象
+     * 上传对象,可以用于上传头像等无依赖文件
      *
      * @param key  唯一键
      * @param file 文件
@@ -54,8 +54,7 @@ public class CosManager {
      */
     public PutObjectResult putPictureObject(String key, File file) {
 
-        PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key,
-                file);
+        PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
         // 对图片进行处理（获取基本信息也被视作为一种处理）
         PicOperations picOperations = new PicOperations();
         // 1 表示返回原图信息

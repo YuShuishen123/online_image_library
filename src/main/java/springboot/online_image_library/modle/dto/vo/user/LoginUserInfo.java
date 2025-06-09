@@ -13,7 +13,7 @@ import java.util.Date;
  * @description 用于返回给前端的已登录用户视图
  */
 @Data
-public class LoginUserVO implements Serializable {
+public class LoginUserInfo implements Serializable {
 
     @Serial
     private static final long serialVersionUID = -819574702651822509L;

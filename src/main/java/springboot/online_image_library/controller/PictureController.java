@@ -21,9 +21,9 @@ import springboot.online_image_library.manager.AbstractCacheClient;
 import springboot.online_image_library.modle.BO.PictureTagCategory;
 import springboot.online_image_library.modle.dto.request.picture.*;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Picture;
 import springboot.online_image_library.modle.entiry.Space;
-import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.PictureReviewStatusEnum;
 import springboot.online_image_library.service.PictureService;
 import springboot.online_image_library.service.SpaceService;
@@ -80,8 +80,8 @@ public class PictureController {
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadRequest pictureUploadRequest,
             HttpServletRequest request) {
-        User loginUser = userService.getLoginUser(request);
-        PictureVO pictureVO = pictureService.uploadPictureByLocal(multipartFile, pictureUploadRequest, loginUser);
+        LoginState loginState = userService.getLoginState(request);
+        PictureVO pictureVO = pictureService.uploadPictureByLocal(multipartFile, pictureUploadRequest, loginState);
         return ResultUtils.success(pictureVO);
     }
 
@@ -98,8 +98,8 @@ public class PictureController {
             PictureUploadRequest pictureUploadRequest,
             String fileurl,
             HttpServletRequest request){
-        User loginUser = userService.getLoginUser(request);
-        return ResultUtils.success(pictureService.uploadPictureByUrl(fileurl,pictureUploadRequest,loginUser));
+        LoginState loginState = userService.getLoginState(request);
+        return ResultUtils.success(pictureService.uploadPictureByUrl(fileurl, pictureUploadRequest, loginState));
     }
 
     @Operation(
@@ -113,8 +113,8 @@ public class PictureController {
             HttpServletRequest request
     ) {
         ThrowUtils.throwIf(pictureUploadByBatchRequest == null, ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
-        List<PictureVO> pictureVOList = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginUser);
+        LoginState loginState = userService.getLoginState(request);
+        List<PictureVO> pictureVOList = pictureService.uploadPictureByBatch(pictureUploadByBatchRequest, loginState);
         return ResultUtils.success(pictureVOList);
     }
 
@@ -332,8 +332,8 @@ public class PictureController {
     public BaseResponse<Boolean> doPictureReview(@RequestBody PictureReviewRequest pictureReviewRequest,
                                                  HttpServletRequest request) {
         ThrowUtils.throwIf(pictureReviewRequest == null, ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
-        pictureService.doPictureReview(pictureReviewRequest, loginUser);
+        LoginState loginState = userService.getLoginState(request);
+        pictureService.doPictureReview(pictureReviewRequest, loginState);
         return ResultUtils.success(true);
     }
 
@@ -353,9 +353,9 @@ public class PictureController {
         long current = pictureQueryRequest.getCurrent();
         long size = pictureQueryRequest.getPageSize();
         // 获取登陆用户
-        User loginUser = userService.getLoginUser(httpServletRequest);
+        LoginState loginState = userService.getLoginState(httpServletRequest);
         // 获取用户空间
-        Space space = spaceService.getUserSpaceFromLogUser(loginUser);
+        Space space = spaceService.getUserSpaceFromLogUser(loginState);
         // 进行分页查询
         Page<Picture> picturePage = pictureService.page(new Page<>(current, size), pictureService.getQueryWrapper(pictureQueryRequest, space.getId()));
         // 返回Picture数据

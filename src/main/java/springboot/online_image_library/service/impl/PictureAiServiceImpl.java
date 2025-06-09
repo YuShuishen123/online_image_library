@@ -13,8 +13,8 @@ import springboot.online_image_library.api.aliyunAi.model.Response.CreateTaskRes
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Picture;
-import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.PictureAiService;
 import springboot.online_image_library.service.PictureService;
 
@@ -37,12 +37,12 @@ public class PictureAiServiceImpl implements PictureAiService {
     AliYunApi aliYunApi;
 
     @Override
-    public CreateTaskResponse createOutPaintingTask(ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend, User logUser) {
+    public CreateTaskResponse createOutPaintingTask(ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend, LoginState loginState) {
         // 获取需要扩图的图片信息
         Long pictureId = expansionTaskRequestFromTheFrontend.getPictureId();
         Picture picture = Optional.ofNullable(pictureServic.getPictureById(pictureId)).orElseThrow(() -> new RuntimeException("图片不存在"));
         // 权限校验,用户必须是图片的拥有者
-        ThrowUtils.throwIf(!Objects.equals(picture.getUserId(), logUser.getId()), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(!Objects.equals(picture.getUserId(), loginState.getId()), ErrorCode.NO_AUTH_ERROR);
         // 构造请求参数
         ExpansionTaskRequestSentToAPI expansionTaskRequestSentToApi = new ExpansionTaskRequestSentToAPI();
         // 创建图片信息输入体

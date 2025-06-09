@@ -18,8 +18,8 @@ import springboot.online_image_library.exception.ThrowUtils;
 import springboot.online_image_library.mapper.SpaceMapper;
 import springboot.online_image_library.modle.BO.SpaceLevel;
 import springboot.online_image_library.modle.dto.request.space.SpaceAddRequest;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Space;
-import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.SpaceLevelEnum;
 import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.utils.commom.LocalLockUtil;
@@ -90,16 +90,16 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     }
 
     @Override
-    public void validateUserPrivilege(User user, SpaceAddRequest request) {
+    public void validateUserPrivilege(LoginState loginState, SpaceAddRequest request) {
         // 请求中的空间等级不为空时候,判断是否为管理员,非管理员则抛出权限错误
         if (request.getSpaceLevel() != null) {
             ThrowUtils.throwIf(request.getSpaceLevel() != SpaceLevelEnum.COMMON.getValue()
-                    && !Objects.equals(user.getUserRole(), UserConstants.ADMIN_ROLE), ErrorCode.NO_AUTH_ERROR, "非管理员无权限");
+                    && !Objects.equals(loginState.getUserRole(), UserConstants.ADMIN_ROLE), ErrorCode.NO_AUTH_ERROR, "非管理员无权限");
         }
     }
 
     @Override
-    public Space requestToSpace(SpaceAddRequest request, User user) {
+    public Space requestToSpace(SpaceAddRequest request, LoginState loginState) {
         Space space = new Space();
         // 使用Spring工具类复制同名属性
         BeanUtils.copyProperties(request, space);
@@ -115,23 +115,23 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 根据空间级别填充额外信息
         this.fillSpaceBySpaceLevel(space);
         // 设置所属用户ID
-        space.setUserId(user.getId());
+        space.setUserId(loginState.getId());
 
         return space;
     }
 
     @Override
-    public Space addSpace(SpaceAddRequest request, User user) {
+    public Space addSpace(SpaceAddRequest request, LoginState loginState) {
         // 生成唯一的锁键（建议：业务前缀_用户ID_空间类型）
-        String lockKey = "space_service:create:" + user.getId();
+        String lockKey = "space_service:create:" + loginState.getId();
         // 转换并且填充数据
-        Space space = requestToSpace(request, user);
+        Space space = requestToSpace(request, loginState);
         // 权限校验,如果是非普通空间，则需要管理员权限
-        validateUserPrivilege(user, request);
+        validateUserPrivilege(loginState, request);
         // 加本地锁创建空间,防止用户连续点击导致重复创建
         return LocalLockUtil.executeWithLockAndReturn(lockKey, () -> {
             // 先判断该用户是否已经拥有空间
-            Space oldSpace = this.getOne(new QueryWrapper<Space>().eq("userid", user.getId()));
+            Space oldSpace = this.getOne(new QueryWrapper<Space>().eq("userid", loginState.getId()));
             ThrowUtils.throwIf(oldSpace != null, ErrorCode.OPERATION_ERROR, "用户已拥有空间");
             // 创建空间
             boolean result = this.save(space);
@@ -140,22 +140,23 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         });
     }
 
+
     @Override
     @Async
-    public void addSpaceForNewUser(User user) {
+    public void addSpaceForNewUser(LoginState loginState) {
         SpaceAddRequest request = new SpaceAddRequest();
         // 转换并且填充数据
-        Space space = requestToSpace(request, user);
+        Space space = requestToSpace(request, loginState);
         if (this.save(space)) {
             log.info("初始用户空间创建成功,空间id:{}", space.getId());
         } else {
-            log.error("初始用户空间创建失败,userId:{}", user.getId());
+            log.error("初始用户空间创建失败,userId:{}", loginState.getId());
         }
     }
 
     @Override
-    public boolean isSpaceOwner(User user, Long spaceId) {
-        return this.getOne(new QueryWrapper<Space>().eq("id", spaceId).eq("userid", user.getId())) != null;
+    public boolean isSpaceOwner(LoginState loginState, Long spaceId) {
+        return this.getOne(new QueryWrapper<Space>().eq("id", spaceId).eq("userid", loginState.getId())) != null;
     }
 
     @Async("imageAsyncExecutor")
@@ -195,8 +196,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
      * 根据登陆者获取用户空间
      */
     @Override
-    public Space getUserSpaceFromLogUser(User logUser) {
-        Space space = this.getOne(new QueryWrapper<Space>().eq("userid", logUser.getId()));
+    public Space getUserSpaceFromLogUser(LoginState loginState) {
+        Space space = this.getOne(new QueryWrapper<Space>().eq("userid", loginState.getId()));
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "用户空间不存在");
         return space;
     }

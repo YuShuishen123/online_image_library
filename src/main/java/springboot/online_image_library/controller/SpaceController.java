@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
@@ -18,11 +17,10 @@ import springboot.online_image_library.exception.ThrowUtils;
 import springboot.online_image_library.modle.BO.SpaceLevel;
 import springboot.online_image_library.modle.dto.request.space.SpaceAddRequest;
 import springboot.online_image_library.modle.dto.request.space.SpaceUpdateRequest;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Space;
-import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.service.UserService;
-import springboot.online_image_library.utils.commom.Object2JsonUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -43,10 +41,6 @@ public class SpaceController {
     private SpaceService spaceService;
     @Resource
     private UserService userService;
-    @Resource
-    private RedisTemplate<String, String> redisTemplate;
-    @Resource
-    private Object2JsonUtils object2JsonUtils;
 
     @Operation(
             summary = "更新空间参数",
@@ -84,8 +78,8 @@ public class SpaceController {
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Space> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceAddRequest == null, ErrorCode.PARAMS_ERROR);
-        User user = userService.getLoginUser(request);
-        return ResultUtils.success(spaceService.addSpace(spaceAddRequest, user));
+        LoginState loginState = userService.getLoginState(request);
+        return ResultUtils.success(spaceService.addSpace(spaceAddRequest, loginState));
     }
 
     @Operation(
@@ -101,8 +95,8 @@ public class SpaceController {
         Space oldSpace = spaceService.getById(id);
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 鉴权,非创建者或者管理员则无权限
-        User user = userService.getLoginUser(request);
-        ThrowUtils.throwIf(!user.getId().equals(id) && !user.getUserRole().equals(UserConstants.ADMIN_ROLE), ErrorCode.NO_AUTH_ERROR);
+        LoginState loginState = userService.getLoginState(request);
+        ThrowUtils.throwIf(!loginState.getId().equals(id) && !loginState.getUserRole().equals(UserConstants.ADMIN_ROLE), ErrorCode.NO_AUTH_ERROR);
         return ResultUtils.success(spaceService.removeById(id));
     }
 
@@ -113,15 +107,13 @@ public class SpaceController {
     @PostMapping("/get")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     public BaseResponse<Space> getSpace(HttpServletRequest request) {
-        User user = userService.getLoginUser(request);
+        LoginState loginState = userService.getLoginState(request);
         QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userId", user.getId());
+        queryWrapper.eq("userId", loginState.getId());
         Space space = spaceService.getOne(queryWrapper);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "您还未拥有空间");
         return ResultUtils.success(space);
-
     }
-
 
     @Operation(
             summary = "获取各级空间信息",

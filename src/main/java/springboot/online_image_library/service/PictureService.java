@@ -12,8 +12,8 @@ import springboot.online_image_library.modle.dto.request.picture.PictureReviewRe
 import springboot.online_image_library.modle.dto.request.picture.PictureUploadByBatchRequest;
 import springboot.online_image_library.modle.dto.request.picture.PictureUploadRequest;
 import springboot.online_image_library.modle.dto.vo.picture.PictureVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Picture;
-import springboot.online_image_library.modle.entiry.User;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -30,12 +30,12 @@ public interface PictureService extends IService<Picture> {
      *
      * @param multipartFile 图片文件
      * @param pictureUploadRequest     图片id(更新时附带)
-     * @param loginUser 登录用户
+     * @param loginState 登录用户
      * @return 上传结果
      */
     PictureVO uploadPictureByLocal(MultipartFile multipartFile,
                                    PictureUploadRequest pictureUploadRequest,
-                                   User loginUser);
+                                   LoginState loginState);
 
 
     /**
@@ -105,38 +105,38 @@ public interface PictureService extends IService<Picture> {
      * 图片审核
      *
      * @param pictureReviewRequest 图片审核请求
-     * @param loginUser 审核人员
+     * @param loginState 审核人员
      */
-    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, LoginState loginState);
 
     /**
      * 根据上传人员身份填充图片审核参数
      *
      * @param picture 图片对象
-     * @param loginUser 登录用户
+     * @param loginState 登录用户状态
      */
-    void fillReviewParams(Picture picture, User loginUser);
+    void fillReviewParams(Picture picture, LoginState loginState);
 
     /**
      * 通过url上传图片
      * @param fileurl 图片url
      * @param pictureUploadRequest 图片上传请求
-     * @param loginUser 登录用户
+     * @param loginState 登录用户
      * @return 上传结果
      */
-    PictureVO uploadPictureByUrl(String fileurl, PictureUploadRequest pictureUploadRequest, User loginUser);
+    PictureVO uploadPictureByUrl(String fileurl, PictureUploadRequest pictureUploadRequest, LoginState loginState);
 
 
     /**
      * 批量抓取和创建图片
      *
      * @param pictureUploadByBatchRequest 批量上传请求体
-     * @param loginUser                   登录用户,用于获取长传者信息
+     * @param loginState                   登录用户,用于获取长传者信息
      * @return 成功创建的图片数
      */
     List<PictureVO> uploadPictureByBatch(
             PictureUploadByBatchRequest pictureUploadByBatchRequest,
-            User loginUser
+            LoginState loginState
     );
 
     /**

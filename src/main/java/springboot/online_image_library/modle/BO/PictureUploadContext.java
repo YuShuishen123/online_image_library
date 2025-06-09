@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.modle.entiry.Picture;
-import springboot.online_image_library.modle.entiry.User;
 
 /**
  * 用于存储上传图片的上下文信息
@@ -34,7 +34,7 @@ public class PictureUploadContext {
 
     private Picture picture;
     private UploadPictureResult uploadResult;
-    private User loginUser;
+    private LoginState loginState;
     private boolean isUpdate;
     private String oldPictureUrl;
     private String oldPictureThumbnailUrl;

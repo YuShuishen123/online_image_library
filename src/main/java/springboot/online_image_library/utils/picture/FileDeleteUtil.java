@@ -43,8 +43,7 @@ public class FileDeleteUtil {
      * @param url 待删除的图片url
      */
     @Async("imageAsyncExecutor")
-    public void asyncCheckAndDeleteFile(String url) {
-        // 检查数据库中是否有其他图片也采用当前的这个url,如果有则不删除云端,防止其他记录的url失效
+    public void deleteFile(String url) {
             long start = System.currentTimeMillis();
             try {
                 boolean deleteResult = deleteFileByUrl(url);

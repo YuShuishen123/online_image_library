@@ -3,6 +3,7 @@ package springboot.online_image_library.utils.picture;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.http.*;
 import com.qcloud.cos.model.PutObjectResult;
@@ -220,10 +221,6 @@ public class FileUploadUtil {
                                      MultipartFile multipartFile) {
     }
 
-
-
-
-
     /**
      * 检查是否是图片扩展名
      *
@@ -423,5 +420,32 @@ public class FileUploadUtil {
         }
     }
 
+
+    /**
+     * 用于通过本地上传的文件上传头像,返回一个头像地址
+     *
+     * @param file     头像文件
+     * @param basePath 上传的基础路径
+     * @return 头像地址, 用于前端更新用户个人信息的头像字段
+     */
+    public String uploadAvatar(MultipartFile file, String basePath) {
+        // 校验文件
+        validPicture(file);
+        // 生成唯一文件名
+        String uniqueFileName = IdUtil.simpleUUID() + "." + FileUtil.getSuffix(file.getOriginalFilename());
+        // 构建存储路径
+        String filePath = String.format("%s/%s", basePath, uniqueFileName);
+        // 构建临时文件用于上传
+        File tempFile = null;
+        try {
+            tempFile = File.createTempFile("upload_", "." + FileUtil.getSuffix(file.getOriginalFilename()));
+            // 调用cosManager,通过multipartFile和filePath进行上传
+            cosManager.putObject(filePath, tempFile);
+            // 返回头像地址
+            return cosClientConfig.getHost() + "/" + filePath;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片上传失败");
+        }
+    }
 
 }

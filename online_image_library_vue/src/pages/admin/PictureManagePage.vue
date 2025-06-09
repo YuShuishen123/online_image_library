@@ -67,11 +67,6 @@
       </a-table>
     </a-card>
 
-    <!-- 上传弹窗 -->
-    <a-modal v-model:visible="uploadModalVisible" title="上传图片" :footer="null" @cancel="handleUploadCancel">
-      <picture-uploader :categories="categories" :tags="tags" @upload-success="handleUploadSuccess"
-        @cancel="handleUploadCancel" />
-    </a-modal>
 
     <!-- 其余弹窗等内容保持不变 -->
     <a-modal v-model:visible="editModalVisible" title="编辑图片信息" @ok="handleEditSubmit"
@@ -114,15 +109,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import type { TablePaginationConfig } from 'ant-design-vue'
+import {onMounted, ref} from 'vue'
+import type {TablePaginationConfig} from 'ant-design-vue'
+import {message} from 'ant-design-vue'
 import {
-  listPicturePage,
-  updatePictureInfo,
   deletePicture,
   doPictureReview,
+  listPicturePage,
   listPictureTagCategory,
+  updatePictureInfo,
 } from '@/api/pictureController'
 
 const columns = [
@@ -185,18 +180,6 @@ const searchForm = ref<API.PictureQueryRequest>({
   sortField: 'createTime',
   sortOrder: 'descend',
 })
-
-const uploadModalVisible = ref(false)
-
-
-const handleUploadSuccess = () => {
-  uploadModalVisible.value = false
-  fetchPictureList()
-}
-
-const handleUploadCancel = () => {
-  uploadModalVisible.value = false
-}
 
 const editModalVisible = ref(false)
 const editForm = ref<API.PictureUpdateRequest>({

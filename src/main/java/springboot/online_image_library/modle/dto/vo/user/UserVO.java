@@ -2,12 +2,13 @@ package springboot.online_image_library.modle.dto.vo.user;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
 /**
  * @author Yu'S'hui'shen
- * 脱敏后的用户
+ * 脱敏后的用户,可以给其他用户查看
  */
 @Data
 public class UserVO implements Serializable {
@@ -52,5 +53,6 @@ public class UserVO implements Serializable {
      */
     private Date updateTime;
 
+    @Serial
     private static final long serialVersionUID = 1L;
 }

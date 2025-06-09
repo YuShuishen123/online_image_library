@@ -17,7 +17,7 @@ import springboot.online_image_library.common.ResultUtils;
 import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
-import springboot.online_image_library.modle.entiry.User;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
 import springboot.online_image_library.service.PictureAiService;
 import springboot.online_image_library.service.UserService;
 
@@ -57,8 +57,8 @@ public class PictureAIServiceController {
     @PostMapping("/pictureAiService/createOutPaintingTask")
     public BaseResponse<CreateTaskResponse> createOutPaintingTask(HttpServletRequest request, @RequestBody ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend) {
         ThrowUtils.throwIf(expansionTaskRequestFromTheFrontend == null || expansionTaskRequestFromTheFrontend.getPictureId() == null, ErrorCode.PARAMS_ERROR, "参数为空");
-        User logUser = userService.getLoginUser(request);
-        return ResultUtils.success(pictureAiService.createOutPaintingTask(expansionTaskRequestFromTheFrontend, logUser));
+        LoginState loginState = userService.getLoginState(request);
+        return ResultUtils.success(pictureAiService.createOutPaintingTask(expansionTaskRequestFromTheFrontend, loginState));
     }
 
     /**

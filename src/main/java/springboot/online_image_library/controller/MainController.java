@@ -16,6 +16,7 @@ import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.manager.CacheClient;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserInfo;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.UserService;
 
@@ -88,7 +89,7 @@ public class MainController {
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @GetMapping("/switch")
     public BaseResponse<String> switchUser(HttpServletRequest hettpServletRequest) {
-        User loginUser =  userService.getLoginUser(hettpServletRequest);
+        LoginUserInfo loginUser = userService.getLoginUser(hettpServletRequest);
         User newUser = new User();
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();

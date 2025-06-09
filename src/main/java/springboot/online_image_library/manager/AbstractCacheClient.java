@@ -120,7 +120,6 @@ public abstract class AbstractCacheClient {
         return null;
     }
 
-
     public void invalidate(String key) {
         redisTemplate.delete(key);
         invalidateLocalCache(key);

@@ -14,17 +14,21 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.manager.CacheClientNoLocal;
 import springboot.online_image_library.mapper.UserMapper;
 import springboot.online_image_library.modle.dto.request.user.UserQueryRequest;
-import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserInfo;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.modle.enums.UserRoleEnum;
 import springboot.online_image_library.service.SpaceService;
 import springboot.online_image_library.service.UserService;
+import springboot.online_image_library.utils.picture.FileDeleteUtil;
+import springboot.online_image_library.utils.picture.FileUploadUtil;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -48,7 +52,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，混淆密码
      */
     private static final String SALT = "SALT";
-    private static final String USER_LOGIN_STATE = "user:login:state:";
+    // 登陆用户信息键
+    private static final String LOGIN_USER_INFO = "user:login:info:";
+    // 登陆用户状态键
+    private static final String LOGIN_USER_STATE = "user:login:state:";
+
     private static final String SESSION_TOKEN = "session_token";
     // 登录状态过期时间，30分钟
     private static final long LOGIN_EXPIRE_TIME = 24 * 60 * (long) 60;
@@ -59,9 +67,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     // 创建一个SpaceService对象
     private final SpaceService spaceService;
 
-    public UserServiceImpl(@Qualifier("cacheClientNoLocal") CacheClientNoLocal cacheClientNoLocal, SpaceService spaceService) {
+    private final FileUploadUtil fileUploadUtil;
+    private final FileDeleteUtil fileDeleteUtil;
+    private final UserMapper userMapper;
+
+    public UserServiceImpl(@Qualifier("cacheClientNoLocal") CacheClientNoLocal cacheClientNoLocal, SpaceService spaceService, FileUploadUtil fileUploadUtil, FileDeleteUtil fileDeleteUtil, UserMapper userMapper) {
         this.cacheClientNoLocal = cacheClientNoLocal;
         this.spaceService = spaceService;
+        this.fileUploadUtil = fileUploadUtil;
+        this.fileDeleteUtil = fileDeleteUtil;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -123,7 +138,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             // 处理其他插入失败情况
             throwIf(!success, ErrorCode.OPERATION_ERROR, "注册失败");
             // 异步创建空间
-            spaceService.addSpaceForNewUser(user);
+            LoginState loginState = new LoginState();
+            loginState.setId(user.getId());
+            loginState.setUserRole(UserRoleEnum.USER.getValue());
+            spaceService.addSpaceForNewUser(loginState);
             return user.getId();
         } catch (DuplicateKeyException e) {
             // 捕获唯一键冲突异常
@@ -142,7 +160,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin) {
+    public LoginUserInfo userLogin(String userAccount, String userPassword, HttpServletResponse response, int isAdmin) {
         if (CharSequenceUtil.hasBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
@@ -151,6 +169,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq(USER_ACCOUNT_NICKNAME, userAccount);
         User user = this.baseMapper.selectOne(queryWrapper);
+        // 创建一个用户视图类用于在缓存当中存放用户信息
+        UserVO userVO = this.getUserVO(user);
 
         if (user == null || !getEncryptPassword(userPassword).equals(user.getUserPassword())) {
             log.info("user login failed");
@@ -161,45 +181,62 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (isAdmin == 1 && !user.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
-
+        // 创建一个登陆状态存储对象,用于存放用户的登陆状态和角色
+        LoginState userLoginjState = new LoginState();
+        // 赋值
+        BeanUtils.copyProperties(user, userLoginjState);
+        // 将用户登陆状态存入缓存
+        // 生成一个唯一token
         String token = IdUtil.simpleUUID();
-        String redisKey = USER_LOGIN_STATE + token;
-
-        // 回填缓存
-        cacheClientNoLocal.update(redisKey, user, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
-
+        String stateRedisKey = LOGIN_USER_STATE + token;
+        cacheClientNoLocal.update(stateRedisKey, userLoginjState, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
+        // 回填用户信息到缓存
+        String infoRedisKey = LOGIN_USER_INFO + user.getId();
+        cacheClientNoLocal.update(infoRedisKey, userVO, Duration.ofSeconds(LOGIN_EXPIRE_TIME));
         // 写 Cookie
         Cookie cookie = new Cookie(SESSION_TOKEN, token);
         cookie.setPath("/");
         cookie.setMaxAge((int) LOGIN_EXPIRE_TIME);
         response.addCookie(cookie);
-
         return this.getLoginUserVO(user);
     }
 
 
     @Override
-    public User getLoginUser(HttpServletRequest request) {
+    public LoginUserInfo getLoginUser(HttpServletRequest request) {
+        LoginState userLoginState = getLoginState(request);
+        // 如果查询登陆状态的结果不为空,说明用户已经登陆,再从缓存当中获取用户信息
+        if (userLoginState != null) {
+            String redisInfoKey = LOGIN_USER_INFO + userLoginState.getId();
+            return cacheClientNoLocal.query(
+                    redisInfoKey,
+                    new TypeReference<>() {
+                    },
+                    Duration.ofSeconds(LOGIN_EXPIRE_TIME),
+                    () -> this.getLoginUserVO(userMapper.selectById(userLoginState.getId()))
+            );
+        }
+        // 如果查询登陆状态的结果为空,说明用户没有登陆
+        throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+    }
+
+    @Override
+    public LoginState getLoginState(HttpServletRequest request) {
         String token = getSessionToken(request);
         if (token == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
-
-        String redisKey = USER_LOGIN_STATE + token;
-
-        // 查询缓存（本地 -> Redis -> DB）
-        // 登录状态丢失，回调直接抛异常
+        // 先查询登陆状态,通过登陆状态键
+        String stateRedisKey = LOGIN_USER_STATE + token;
         return cacheClientNoLocal.query(
-                redisKey,
+                stateRedisKey,
                 new TypeReference<>() {
                 },
                 Duration.ofSeconds(LOGIN_EXPIRE_TIME),
                 () -> {
-                    // 登录状态丢失，回调直接抛异常
                     throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
                 }
         );
-
     }
 
 
@@ -207,7 +244,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public boolean userLogout(HttpServletRequest request) {
         String token = getSessionToken(request);
         if (token != null) {
-            String redisKey = USER_LOGIN_STATE + token;
+            String redisKey = LOGIN_USER_STATE + token;
             cacheClientNoLocal.invalidate(redisKey);
         }
         return true;
@@ -234,18 +271,50 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
 
     @Override
-    public LoginUserVO getLoginUserVO(User user) {
-        LoginUserVO loginUserVO = new LoginUserVO();
-        BeanUtil.copyProperties(user,loginUserVO);
-        return loginUserVO;
+    public LoginUserInfo getLoginUserVO(User user) {
+        LoginUserInfo loginUserinfo = new LoginUserInfo();
+        BeanUtil.copyProperties(user, loginUserinfo);
+        return loginUserinfo;
     }
 
     @Override
-    public boolean isAdmin(User user) {
-        return user != null && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    public boolean isAdmin(LoginState loginState) {
+        return loginState != null && UserRoleEnum.ADMIN.getValue().equals(loginState.getUserRole());
+
     }
 
-
+    @Override
+    public String uploadAvatar(MultipartFile file, LoginUserInfo loginUserInfo) {
+        // 生成基本路径
+        String basePath = "public/" + loginUserInfo.getId() + "/avatar/";
+        // 获取旧头像地址
+        String oldAvatarUrl = loginUserInfo.getUserAvatar();
+        log.debug("旧头像地址:{}", oldAvatarUrl);
+        // 调用上传方法
+        String newAvatarUrl;
+        try {
+            newAvatarUrl = fileUploadUtil.uploadAvatar(file, basePath);
+            if (oldAvatarUrl != null && !oldAvatarUrl.isEmpty()) {
+                // 设置新头像地址
+                QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("id", loginUserInfo.getId());
+                User user = new User();
+                user.setUserAvatar(newAvatarUrl);
+                boolean success = this.update(user, queryWrapper);
+                throwIf(!success, ErrorCode.OPERATION_ERROR, "更新头像失败");
+                log.info("更新头像成功,头像地址:{}", newAvatarUrl);
+                // 异步删除旧头像
+                log.debug("开始异步删除旧头像,url:{}", oldAvatarUrl);
+                fileDeleteUtil.deleteFile(oldAvatarUrl);
+                log.debug("异步删除旧头s像完成");
+            } else {
+                log.info("旧头像为空或新头像为空，无需删除");
+            }
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "头像上传失败");
+        }
+        return newAvatarUrl;
+    }
 }
 
 

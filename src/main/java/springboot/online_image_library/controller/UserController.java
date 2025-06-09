@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import springboot.online_image_library.annotation.AuthCheck;
 import springboot.online_image_library.common.BaseResponse;
 import springboot.online_image_library.common.DeleteRequest;
@@ -16,8 +17,10 @@ import springboot.online_image_library.constant.UserConstants;
 import springboot.online_image_library.exception.BusinessException;
 import springboot.online_image_library.exception.ErrorCode;
 import springboot.online_image_library.exception.ThrowUtils;
+import springboot.online_image_library.manager.CacheClientNoLocal;
 import springboot.online_image_library.modle.dto.request.user.*;
-import springboot.online_image_library.modle.dto.vo.user.LoginUserVO;
+import springboot.online_image_library.modle.dto.vo.user.LoginState;
+import springboot.online_image_library.modle.dto.vo.user.LoginUserInfo;
 import springboot.online_image_library.modle.dto.vo.user.UserVO;
 import springboot.online_image_library.modle.entiry.User;
 import springboot.online_image_library.service.UserService;
@@ -41,6 +44,11 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    // 登陆用户信息键
+    private static final String LOGIN_USER_INFO = "user:login:info:";
+    @Resource
+    CacheClientNoLocal cacheClientNoLocal;
+
     @Operation(
             summary = "用户注册",
             description = "用于用户注册功能",
@@ -60,12 +68,12 @@ public class UserController {
             description = "用于用户登陆功能",
             method = "POST")
     @PostMapping("/login")
-    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
+    public BaseResponse<LoginUserInfo> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response,0);
-        return ResultUtils.success(loginUserVO);
+        LoginUserInfo loginUserinfo = userService.userLogin(userAccount, userPassword, response, 0);
+        return ResultUtils.success(loginUserinfo);
     }
 
 
@@ -74,12 +82,12 @@ public class UserController {
             description = "用于管理员登陆功能",
             method = "POST")
     @PostMapping("/admin/login")
-    public BaseResponse<LoginUserVO> adminLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
+    public BaseResponse<LoginUserInfo> adminLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, response,1);
-        return ResultUtils.success(loginUserVO);
+        LoginUserInfo loginUserinfo = userService.userLogin(userAccount, userPassword, response, 1);
+        return ResultUtils.success(loginUserinfo);
     }
 
     @Operation(
@@ -87,9 +95,9 @@ public class UserController {
             description = "用于获取当前登陆用户信息",
             method = "GET")
     @GetMapping("/get/login")
-    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
-        User user = userService.getLoginUser(request);
-        return ResultUtils.success(userService.getLoginUserVO(user));
+    public BaseResponse<LoginUserInfo> getLoginUser(HttpServletRequest request) {
+        LoginUserInfo loginUserInfo = userService.getLoginUser(request);
+        return ResultUtils.success(loginUserInfo);
     }
 
     @Operation(
@@ -200,9 +208,9 @@ public class UserController {
         User oldUser = userService.getById(userUpdateRequest.getId());
         throwIf(oldUser == null,ErrorCode.NOT_FOUND_ERROR,"不存在的用户");
         // 获取当前登陆用户
-        User loginUser = userService.getLoginUser(request);
+        LoginState loginState = userService.getLoginState(request);
         // 比对用户,普通用户只能修改自己的信息,管理员可以直接修改
-        if (!oldUser.getId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+        if (!oldUser.getId().equals(loginState.getId()) && !userService.isAdmin(loginState)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         User newUser = new User();
@@ -211,7 +219,29 @@ public class UserController {
         // 更新信息
         boolean result = userService.updateById(newUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 删除缓存当中的信息
+        cacheClientNoLocal.invalidate(LOGIN_USER_INFO + oldUser.getId());
         return ResultUtils.success(true);
     }
 
+    /**
+     * 长传头像图片接口
+     */
+    @Operation(
+            summary = "更换头像",
+            description = "用于用户更换头像",
+            method = "POST"
+    )
+    @PostMapping("/upload/avatar")
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    public BaseResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR);
+        // 检查文件大小
+        ThrowUtils.throwIf(file.getSize() > 5 * 1024 * 1024, ErrorCode.PARAMS_ERROR, "头像文件大小不能超过5MB");
+        LoginUserInfo loginUserInfo = userService.getLoginUser(request);
+        String url = userService.uploadAvatar(file, loginUserInfo);
+        // 删除缓存当中的信息
+        cacheClientNoLocal.invalidate(LOGIN_USER_INFO + loginUserInfo.getId());
+        return ResultUtils.success(url);
+    }
 }

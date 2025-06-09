@@ -1,15 +1,14 @@
 <template>
   <a-config-provider :locale="appLocale">
     <div id="app">
-      <BasicLayout />
+      <router-view/>
     </div>
   </a-config-provider>
 </template>
 
 <script setup lang="ts">
 // 引入 Vue 和 Ant Design Vue
-import BasicLayout from './layouts/BasciLayout.vue'
-import { health } from './api/mainController'
+import {health} from './api/mainController'
 import zhCN from 'ant-design-vue/es/locale/zh_CN' // 引入 ant-design-vue 的中文语言包
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn' // 引入 dayjs 的中文语言包
