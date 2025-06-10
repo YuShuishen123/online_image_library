@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>光影 AI - 你的智能图片创作伙伴</title>
+    <style>
+      /* --- 全局样式 & 变量 --- */
+      :root {
+        --primary-color: #7f5af0;
+        --secondary-color: #2cb67d;
+        --background-color: #16161a;
+        --card-background: #242629;
+        --text-color: #fffffe;
+        --subtitle-color: #94a1b2;
+        --font-family:
+          'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      }
+
+      /* --- CSS 重置 --- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-family);
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-weight: 600;
+      }
+
+      a {
+        text-decoration: none;
+        color: var(--primary-color);
+        transition: color 0.3s ease;
+      }
+
+      a:hover {
+        color: var(--secondary-color);
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      /* --- 导航栏 --- */
+      .navbar {
+        padding: 20px 0;
+        background-color: rgba(22, 22, 26, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+      }
+
+      .navbar .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--text-color);
+      }
+
+      .logo span {
+        color: var(--primary-color);
+      }
+
+      .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 25px;
+      }
+
+      .nav-links a {
+        color: var(--text-color);
+        font-size: 16px;
+      }
+
+      .cta-button {
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: bold;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(127, 90, 240, 0.4);
+        color: white;
+      }
+
+      /* --- Hero 区域 --- */
+      .hero {
+        text-align: center;
+        padding: 120px 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background:
+          radial-gradient(ellipse at 50% 100%, rgba(127, 90, 240, 0.2), transparent 70%),
+          linear-gradient(160deg, #16161a 20%, #7f5af030 50%, #2cb67d20 80%, #16161a 100%);
+        animation: background-pan 15s linear infinite;
+        z-index: -1;
+      }
+
+      @keyframes background-pan {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .hero h1 {
+        font-size: 48px;
+        margin-bottom: 15px;
+        line-height: 1.2;
+        background: -webkit-linear-gradient(
+          45deg,
+          var(--primary-color),
+          var(--secondary-color),
+          #fffffe
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero p {
+        font-size: 18px;
+        color: var(--subtitle-color);
+        margin-bottom: 30px;
+      }
+
+      /* --- 图片上传区域 --- */
+      .upload-section {
+        background: var(--card-background);
+        border-radius: 20px;
+        padding: 40px;
+        width: 80%;
+        max-width: 700px;
+        margin: 0 auto;
+        border: 1px dashed var(--subtitle-color);
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .upload-section:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .upload-area {
+        cursor: pointer;
+      }
+
+      .upload-area-icon {
+        font-size: 50px;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+      }
+
+      .upload-area h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
+
+      .upload-area p {
+        color: var(--subtitle-color);
+      }
+
+      #file-input {
+        display: none;
+      }
+
+      /* --- AI 功能区 --- */
+      .ai-features {
+        padding: 80px 0;
+        text-align: center;
+      }
+
+      .ai-features h2 {
+        font-size: 36px;
+        margin-bottom: 15px;
+      }
+
+      .ai-features > p {
+        color: var(--subtitle-color);
+        margin-bottom: 50px;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+      }
+
+      .feature-card {
+        background: var(--card-background);
+        padding: 30px;
+        border-radius: 15px;
+        text-align: left;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-10px);
+        border-color: var(--primary-color);
+      }
+
+      .feature-icon {
+        font-size: 32px;
+        margin-bottom: 15px;
+        color: var(--secondary-color);
+      }
+
+      .feature-card h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
+
+      .feature-card p {
+        color: var(--subtitle-color);
+        font-size: 14px;
+      }
+
+      /* --- 灵感画廊 --- */
+      .gallery-section {
+        padding: 80px 0;
+        background-color: #1a1a1f;
+      }
+
+      .gallery-section h2 {
+        text-align: center;
+        font-size: 36px;
+        margin-bottom: 50px;
+      }
+
+      .gallery-grid {
+        column-count: 3;
+        column-gap: 15px;
+      }
+
+      .gallery-item {
+        margin-bottom: 15px;
+        break-inside: avoid;
+      }
+
+      .gallery-item img {
+        border-radius: 10px;
+        width: 100%;
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease;
+      }
+
+      .gallery-item img:hover {
+        transform: scale(1.03);
+        opacity: 0.8;
+      }
+
+      /* --- 页脚 --- */
+      .footer {
+        background-color: var(--background-color);
+        padding: 40px 0;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .footer p {
+        color: var(--subtitle-color);
+      }
+
+      /* --- 响应式设计 --- */
+      @media (max-width: 992px) {
+        .hero h1 {
+          font-size: 40px;
+        }
+        .gallery-grid {
+          column-count: 2;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        } /* 在移动端可以换成汉堡菜单 */
+        .hero h1 {
+          font-size: 32px;
+        }
+        .hero p {
+          font-size: 16px;
+        }
+        .upload-section {
+          width: 95%;
+          padding: 30px;
+        }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .gallery-grid {
+          column-count: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="container">
+        <a href="#" class="logo">光影<span>AI</span></a>
+        <nav>
+          <ul class="nav-links">
+            <li><a href="#features">AI 功能</a></li>
+            <li><a href="#gallery">灵感画廊</a></li>
+            <li><a href="#">定价</a></li>
+            <li><a href="#">博客</a></li>
+          </ul>
+        </nav>
+        <a href="#" class="cta-button">登录 / 注册</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container">
+          <h1>释放你的创造力，用 AI 重塑视觉</h1>
+          <p>
+            上传你的图片，体验通义万象大模型带来的强大 AI
+            编辑能力。一键生成、智能修复、风格转换，从未如此简单。
+          </p>
+
+          <div class="upload-section" id="upload-section">
+            <input type="file" id="file-input" accept="image/*" />
+            <label for="file-input" class="upload-area">
+              <div class="upload-area-icon">⬆️</div>
+              <h3>点击此处上传或拖拽图片</h3>
+              <p>支持 JPG, PNG, WEBP 等格式</p>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="ai-features">
+        <div class="container">
+          <h2>探索通义万象的魔力</h2>
+          <p>我们集成了业界领先的 AI 模型，为你提供无尽的创作可能。</p>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">🎨</div>
+              <h3>AI 艺术风格化</h3>
+              <p>
+                将你的照片转换为梵高、莫奈等大师风格的艺术画作，或尝试赛博朋克、卡通等现代风格。
+              </p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">🪄</div>
+              <h3>智能修复与增强</h3>
+              <p>自动去除图片中的噪点、划痕，提升模糊照片的清晰度和分辨率，让老照片焕发新生。</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">✂️</div>
+              <h3>智能抠图与替换背景</h3>
+              <p>精准识别主体，一键移除或替换背景。无论是证件照还是创意海报，都能轻松搞定。</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">✨</div>
+              <h3>文生图 (Text-to-Image)</h3>
+              <p>
+                输入一段描述性文字，通义万象将为你创造出独一无二的精美图像，让你的想象力成为现实。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="gallery" class="gallery-section">
+        <div class="container">
+          <h2>灵感画廊</h2>
+          <div class="gallery-grid" id="gallery-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>&copy; 2025 光影 AI. All Rights Reserved.</p>
+        <p>基于阿里巴巴通义万象大模型</p>
+      </div>
+    </footer>
+
+    <script>
+      // --- 上传区域交互 ---
+      const uploadSection = document.getElementById('upload-section')
+      const fileInput = document.getElementById('file-input')
+
+      uploadSection.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        uploadSection.style.borderColor = 'var(--secondary-color)'
+      })
+
+      uploadSection.addEventListener('dragleave', () => {
+        uploadSection.style.borderColor = 'var(--subtitle-color)'
+      })
+
+      uploadSection.addEventListener('drop', (e) => {
+        e.preventDefault()
+        uploadSection.style.borderColor = 'var(--subtitle-color)'
+        const files = e.dataTransfer.files
+        if (files.length > 0) {
+          fileInput.files = files
+          // 在这里可以添加文件上传后的处理逻辑，比如显示预览图
+          alert(`文件 "${files[0].name}" 已被选中！`)
+        }
+      })
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          alert(`文件 "${fileInput.files[0].name}" 已被选中！`)
+        }
+      })
+
+      // --- 动态加载画廊图片 ---
+      const galleryGrid = document.getElementById('gallery-grid')
+      const imageUrls = [
+        'https://images.unsplash.com/photo-1679085299976-08709a89a8ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTY2Mw&ixlib=rb-4.0.3&q=80&w=1080',
+        'https://images.unsplash.com/photo-1678663629424-a4b553c33215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTc5NQ&ixlib=rb-4.0.3&q=80&w=1080',
+        'https://images.unsplash.com/photo-1679482121021-365859876d97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTgzOA&ixlib=rb-4.0.3&q=80&w=1080',
+        'https://images.unsplash.com/photo-1678663629424-a4b553c33215?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTc5NQ&ixlib=rb-4.0.3&q=80&w=1080',
+        'https://images.unsplash.com/photo-1679424363478-831e5f88f983?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTg4Mw&ixlib=rb-4.0.3&q=80&w=1080',
+        'https://images.unsplash.com/photo-1680813299418-62a8d14a51e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTY4MTM5OTkxOA&ixlib=rb-4.0.3&q=80&w=1080',
+        // 你可以添加更多图片 URL
+      ]
+
+      function loadGalleryImages() {
+        imageUrls.forEach((url) => {
+          const item = document.createElement('div')
+          item.className = 'gallery-item'
+          const img = document.createElement('img')
+          img.src = url
+          img.alt = 'AI Generated Image'
+          item.appendChild(img)
+          galleryGrid.appendChild(item)
+        })
+      }
+
+      // 页面加载完成后执行
+      document.addEventListener('DOMContentLoaded', () => {
+        loadGalleryImages()
+      })
+    </script>
+  </body>
+</html>

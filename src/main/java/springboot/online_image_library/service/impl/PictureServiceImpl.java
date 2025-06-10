@@ -322,8 +322,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             fileDeleteUtil.deleteFile(oldPictureThumbnailUrl);
             fileDeleteUtil.deleteFile(oldPictureOriginalImageurl);
         }
-        // 异步更新空间信息（增加空间已用容量）
-        spaceService.asyncUpdateSpacePictureInfo(spaceId, uploadResult.getPicSize(), true);
+        // 如果空间id不为0,异步更新空间信息（增加空间已用容量）
+        if (spaceId > 0) {
+            spaceService.asyncUpdateSpacePictureInfo(spaceId, uploadResult.getPicSize(), true);
+        }
         // 转换实体为VO对象并设置上传者信息
         PictureVO pictureVO = PictureVO.objToVo(picture);
         UserVO userVO = userService.getUserVO(userService.getById(loginState.getId()));

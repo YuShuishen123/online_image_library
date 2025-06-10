@@ -422,7 +422,7 @@ public class FileUploadUtil {
 
 
     /**
-     * 用于通过本地上传的文件上传头像,返回一个头像地址
+     * 用于通过本地上传的文件上传头像
      *
      * @param file     头像文件
      * @param basePath 上传的基础路径
@@ -440,11 +440,15 @@ public class FileUploadUtil {
         try {
             tempFile = File.createTempFile("upload_", "." + FileUtil.getSuffix(file.getOriginalFilename()));
             // 调用cosManager,通过multipartFile和filePath进行上传
+            file.transferTo(tempFile);
             cosManager.putObject(filePath, tempFile);
             // 返回头像地址
             return cosClientConfig.getHost() + "/" + filePath;
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "图片上传失败");
+        }finally {
+            // 释放资源
+            deleteTempFile(tempFile);
         }
     }
 

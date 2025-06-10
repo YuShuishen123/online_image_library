@@ -45,7 +45,6 @@ public class CosManager {
         cosClient.putObject(putObjectRequest);
     }
 
-
     /**
      * 上传图片(进行图片压缩处理)
      * @param key 文件唯一键

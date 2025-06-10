@@ -1,13 +1,14 @@
-import {createRouter, createWebHistory} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import PictureManagePage from '@/pages/admin/PictureManagePage.vue'
 import ACCESS_ENUM from '@/access/accessEnum'
 import test from '@/pages/HomePageIndex/testPage.vue'
-import {useLoginUserStore} from '@/stores/useLoginUserStore'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import BasciLayout from '@/layouts/BasciLayout.vue'
 import PictureShow from '@/pages/user/PictureShow.vue'
+import UserSpace from '@/pages/user/UserSpace.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,14 @@ const router = createRouter({
         {
           path: '', // 默认子路由，访问/homepage时显示
           component: PictureShow,
+          meta: {
+            access: ACCESS_ENUM.NOT_LOGIN,
+          },
+        },
+        {
+          path: 'user/UserSpace',
+          name: '个人空间',
+          component: UserSpace,
           meta: {
             access: ACCESS_ENUM.NOT_LOGIN,
           },

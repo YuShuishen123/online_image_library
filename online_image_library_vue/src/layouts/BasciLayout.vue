@@ -11,8 +11,13 @@
         <div class="footer-content">
           <div class="copyright">
             <span>© 2023-{{ currentYear }} </span>
-            <a class="footer-link" href="https://github.com/YuShuishen123?tab=repositories" target="_blank">
-              Github</a>
+            <a
+              class="footer-link"
+              href="https://github.com/YuShuishen123?tab=repositories"
+              target="_blank"
+            >
+              Github</a
+            >
             <span> | Create By YuShuishen</span>
           </div>
           <div class="footer-info">
@@ -48,6 +53,7 @@ const contentStyle = {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(120deg, #23232b 0%, #2d2e36 100%);
 }
 
 .main-layout {

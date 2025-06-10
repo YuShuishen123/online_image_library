@@ -5,24 +5,22 @@
         <RouterLink to="/">
           <div class="title-bar">
             <img class="logo" src="../assets/logo.svg" alt="logo" />
-            <div class="title">光影AI</div>
+            <div class="title">智能云协同图库</div>
           </div>
         </RouterLink>
       </a-col>
       <a-col flex="auto">
-        <a-menu v-model:selectedKeys="current" mode="horizontal" :items="menus" @click="doMenuClick" />
+        <a-menu
+          v-model:selectedKeys="current"
+          mode="horizontal"
+          :items="menus"
+          @click="doMenuClick"
+        />
       </a-col>
       <a-col flex="120px">
         <div class="user-login-status">
           <div v-if="loginUserStore.loginUser.id != 0">
             <a-dropdown>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item>
-                    <a href="javascript:" @click="logout">退出登录</a>
-                  </a-menu-item>
-                </a-menu>
-              </template>
               <a class="ant-dropdown-link" @click.prevent>
                 <a-space>
                   <a-avatar shape="square" :size="32" :src="loginUserStore.loginUser.userAvatar">
@@ -30,25 +28,31 @@
                   {{ loginUserStore.loginUser.userName ?? '无名' }}
                 </a-space>
               </a>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item>
+                    <a href="javascript:" @click="logout">退出登陆</a>
+                  </a-menu-item>
+                </a-menu>
+              </template>
             </a-dropdown>
           </div>
           <div v-else>
             <a-button type="primary" @click="router.push('/user/login')">登录</a-button>
           </div>
         </div>
-
       </a-col>
     </a-row>
   </div>
 </template>
 <script lang="ts" setup>
-import {computed, h, ref} from 'vue'
-import type {MenuProps} from 'ant-design-vue'
-import {message} from 'ant-design-vue'
-import {type RouteRecordRaw, useRouter} from 'vue-router'
-import {userLogout} from '@/api/userController'
-import {useLoginUserStore} from '@/stores/useLoginUserStore'
-import {HomeOutlined} from '@ant-design/icons-vue'
+import { computed, h, ref } from 'vue'
+import type { MenuProps } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import { type RouteRecordRaw, useRouter } from 'vue-router'
+import { userLogout } from '@/api/userController'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { HomeOutlined } from '@ant-design/icons-vue'
 import checkAccess from '@/access/checkAccess'
 
 const router = useRouter()
@@ -64,12 +68,12 @@ const logout = async () => {
   const res = await userLogout()
   if (res.data.code === 200) {
     // 清空用户信息
-    loginUserStore.setLoginUser({
+    await loginUserStore.setLoginUser({
       id: 0,
     })
     message.success('退出登录成功')
     // 跳转到首页
-    await router.push('/')
+    router.push('/')
   } else {
     message.error('退出登录失败,' + res.data.message)
   }
@@ -84,19 +88,12 @@ const doMenuClick = ({ key }: { key: string }) => {
 
 // 当前选中菜单
 const current = ref<string[]>(['home'])
-
-
 const originItems = ref<MenuProps['items']>([
   {
-    key: '/',  // 独立首页
+    key: '/',
     icon: () => h(HomeOutlined),
-    label: '独立首页',
-    title: '独立首页',
-  },
-  {
-    key: '/picture',  // 基础布局首页
-    label: '主页面',
-    title: '主页面',
+    label: '主页',
+    title: '主页',
   },
   {
     key: '/picture/admin/userManage',
@@ -109,7 +106,6 @@ const originItems = ref<MenuProps['items']>([
     title: '图片管理',
   },
 ])
-
 // 过滤菜单项
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const menuToRouteItem = (menu: any): RouteRecordRaw => {
@@ -123,7 +119,6 @@ const menuToRouteItem = (menu: any): RouteRecordRaw => {
 
 // 过滤菜单项
 const filterMenus = (menus = [] as MenuProps['items']) => {
-
   // 过滤条件是一个回调函数 (menu) => { ... }, 返回 true 表示保留该菜单项，返回 false 表示过滤掉该菜单项
   return menus?.filter((menu) => {
     // 通过menu的key值找到对应的路由字段
@@ -145,7 +140,6 @@ const filterMenus = (menus = [] as MenuProps['items']) => {
 const menus = computed(() => {
   return filterMenus(originItems.value)
 })
-
 </script>
 
 <style scoped>
