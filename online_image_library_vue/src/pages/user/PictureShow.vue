@@ -1,13 +1,22 @@
 <template>
   <a-layout-content class="home-page">
-    <div class="search-bar">
+    <div class="search-area">
       <a-input-search
-        v-model:value="searchText"
-        placeholder="输入关键词搜索图片"
+        v-model:value="searchForm.name"
+        placeholder="输入图片名称关键词搜索"
         enter-button="搜索"
         size="large"
         @search="handleSearch"
+        class="search-input"
       />
+      <div class="filter-options">
+        <a-input v-model:value="searchForm.category" placeholder="输入分类" class="filter-input" />
+        <a-input
+          v-model:value="searchForm.tags"
+          placeholder="输入标签 (多个用逗号隔开)"
+          class="filter-input"
+        />
+      </div>
     </div>
 
     <div v-if="loading" class="loading-container">
@@ -57,13 +66,12 @@
       </a-row>
     </div>
 
-    <div v-if="pictureList.length > 0" class="pagination">
-      <a-pagination
-        v-model:current="currentPage"
-        v-model:pageSize="pageSize"
+    <div v-if="total > 0" class="pagination">
+      <CustomPagination
+        :current="currentPage"
+        :pageSize="pageSize"
         :total="total"
         :pageSizeOptions="['4', '8', '12', '24']"
-        show-size-changer
         @change="handlePageChange"
       />
     </div>
@@ -131,19 +139,28 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { listPictureVoPage } from '@/api/pictureController'
 // import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { message } from 'ant-design-vue'
+import CustomPagination from '@/components/CustomPagination.vue' // 引入自定义分页组件
 
-const searchText = ref('')
-const currentPage = ref(1)
-// const loginUserStore = useLoginUserStore()
-const pageSize = ref(12)
+// 搜索表单状态
+const searchForm = reactive<Omit<API.PictureQueryRequest, 'tags'> & { tags: string }>({
+  current: 1,
+  pageSize: 12,
+  name: '',
+  category: '',
+  tags: '',
+  sortField: 'createTime',
+  sortOrder: 'descend',
+})
+
+const currentPage = ref(searchForm.current)
+const pageSize = ref(searchForm.pageSize)
 const total = ref(0)
 const pictureList = ref<API.PictureVO[]>([])
 const loading = ref(false)
-const requestBody = ref<API.PictureQueryRequest>()
 
 // 图片预览相关
 const previewVisible = ref(false)
@@ -195,25 +212,25 @@ const handlePreviewImageError = (e: Event) => {
     img.src = originalUrl
     return // 结束本次函数执行
   }
-
-  // 5. 如果没有原图链接，或者原图也加载失败了，才执行最终的兜底方案
-  img.src = '/placeholder.png' // 显示最终的占位图
 }
 
 const fetchPictureList = async () => {
   if (loading.value) return
 
-  requestBody.value = {
-    current: currentPage.value,
-    pageSize: pageSize.value,
-  }
-  if (searchText.value) {
-    requestBody.value.name = searchText.value
-  }
-
   loading.value = true
   try {
-    const res = await listPictureVoPage(requestBody.value)
+    // 处理 tags 参数：将逗号分隔的字符串转为数组，并过滤空字符串
+    const tagsArray = searchForm.tags
+      .split(',')
+      .map((tag: string) => tag.trim()) // 明确 tag 类型
+      .filter((tag: string) => tag !== '')
+
+    const res = await listPictureVoPage({
+      ...searchForm,
+      current: currentPage.value,
+      pageSize: pageSize.value,
+      tags: tagsArray.length > 0 ? tagsArray : undefined, // 如果没有标签则发送 undefined
+    })
 
     if (res.data.code === 200 && res.data) {
       pictureList.value = res.data.data?.records || []
@@ -221,6 +238,7 @@ const fetchPictureList = async () => {
     } else {
       pictureList.value = []
       total.value = 0
+      message.error('获取图片失败')
     }
   } catch (error) {
     console.error('获取图片列表失败:', error)
@@ -232,12 +250,19 @@ const fetchPictureList = async () => {
   }
 }
 
+// 搜索按钮点击事件
 const handleSearch = () => {
+  searchForm.current = 1
   currentPage.value = 1
   fetchPictureList()
 }
 
-const handlePageChange = () => {
+// 分页组件change事件
+const handlePageChange = (current: number, size: number) => {
+  currentPage.value = current
+  pageSize.value = size
+  searchForm.current = current
+  searchForm.pageSize = size
   fetchPictureList()
 }
 
@@ -281,23 +306,45 @@ onUnmounted(() => {
   color: var(--text-color); /* 统一文字颜色 */
 }
 
-.search-bar {
-  width: 50%;
-  margin: 0 auto;
+.search-area {
   margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.search-input {
+  width: 50%;
+  max-width: 600px;
+}
+
+.filter-options {
+  display: flex;
+  gap: 16px;
+  width: 50%;
+  max-width: 600px;
 }
 
 /* 搜索框美化 */
-:deep(.ant-input-search .ant-input) {
-  background: rgba(36, 38, 41, 0.7) !important;
-  border-color: rgba(127, 90, 240, 0.3) !important;
-  color: var(--text-color) !important;
+:deep(.ant-input-search .ant-input),
+:deep(.ant-input-affix-wrapper .ant-input) {
+  background: #ffffff !important; /* 使用纯白色作为背景 */
+  border-color: #000000 !important; /* 调整边框颜色为纯黑色 */
+  color: #000000 !important; /* 确保文字颜色为纯黑色 */
 }
 
 :deep(.ant-input-search .ant-input-group-addon .ant-btn) {
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
   border-color: transparent !important;
   color: #fff !important;
+}
+
+/* 滤镜输入框样式 */
+.filter-input :deep(.ant-input) {
+  background: #ffffff !important; /* 统一使用纯白色作为背景 */
+  border-color: #000000 !important; /* 统一边框颜色为纯黑色 */
+  color: #000000 !important; /* 确保文字颜色为纯黑色 */
 }
 
 .picture-list {
@@ -312,7 +359,7 @@ onUnmounted(() => {
 }
 
 /* 分页器美化 */
-:deep(.ant-pagination .ant-pagination-item-link),
+/* :deep(.ant-pagination .ant-pagination-item-link),
 :deep(.ant-pagination .ant-pagination-item) {
   background: rgba(36, 38, 41, 0.7) !important;
   border-color: rgba(127, 90, 240, 0.3) !important;
@@ -322,6 +369,7 @@ onUnmounted(() => {
 :deep(.ant-pagination .ant-pagination-item-active) {
   background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
   border-color: transparent !important;
+  color: #fff !important;
 }
 
 :deep(.ant-pagination-options .ant-select-selector) {
@@ -332,7 +380,7 @@ onUnmounted(() => {
 
 :deep(.ant-pagination-total-text) {
   color: var(--text-color);
-}
+} */
 
 .loading-container,
 .empty-container {
