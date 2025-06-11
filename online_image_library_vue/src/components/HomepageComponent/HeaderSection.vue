@@ -8,9 +8,6 @@
             <a href="#">AI 功能</a>
           </li>
           <li>
-            <a href="#">灵感画廊</a>
-          </li>
-          <li>
             <a href="#" @click.prevent="goToPublic">公共图库</a>
           </li>
           <li>
@@ -59,21 +56,14 @@ onMounted(() => {
   loginUserStore.fetchLoginUser()
 })
 
-function scrollToSection(id: string) {
-  const el = document.getElementById(id)
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth' })
-  }
-}
-
 function goLogin() {
-  router.push('/picture/user/login')
+  router.push('/login')
 }
 function goToPublic() {
-  router.push('/picture')
+  router.push('/publicGallery')
 }
 function goToUser() {
-  router.push('/picture/user')
+  router.push('/personalGallery')
 }
 
 function logout() {

@@ -1,20 +1,13 @@
 <template>
   <div class="testPage">
     <HeaderSection />
-    <HeroSection />
-    <FeaturesSection />
-    <GallerySection />
-    <IntroductionSection />
+    <RouterView />
     <FooterSection />
   </div>
 </template>
 
 <script setup lang="ts">
 import HeaderSection from '@/components/HomepageComponent/HeaderSection.vue'
-import HeroSection from '@/components/HomepageComponent/HeroSection.vue'
-import IntroductionSection from '@/components/HomepageComponent/IntroductionSection.vue'
-import FeaturesSection from '@/components/HomepageComponent/FeaturesSection.vue'
-import GallerySection from '@/components/HomepageComponent/GallerySection.vue'
 import FooterSection from '@/components/HomepageComponent/FooterSection.vue'
 
 // 这里可以添加页面交互逻辑

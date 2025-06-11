@@ -1,23 +1,63 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ACCESS_ENUM from '@/access/accessEnum'
-import HomePage from '@/pages/HomePageIndex/HomePage.vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import MainLayout from '@/components/HomepageComponent/MainLayout.vue'
+import UserLoginPage from '@/pages/user/UserLoginPage.vue'
+import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
+import PictureShow from '@/pages/user/PictureShow.vue'
+import UserSpace from '@/pages/user/UserSpace.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: '独立首页',
-      component: HomePage,
+      name: '首页',
+      component: MainLayout,
       meta: {
         access: ACCESS_ENUM.NOT_LOGIN,
       },
     },
+    {
+      path: '/login',
+      name: '登陆',
+      component: UserLoginPage,
+      meta: {
+        access: ACCESS_ENUM.NOT_LOGIN,
+      },
+    },
+    {
+      path: '/register',
+      name: '注册',
+      component: UserRegisterPage,
+      meta: {
+        access: ACCESS_ENUM.NOT_LOGIN,
+      },
+    },
+    {
+      path: '/publicGallery',
+      name: '公共图库',
+      component: PictureShow,
+      meta: {
+        access: ACCESS_ENUM.NOT_LOGIN,
+      },
+    },
+    {
+      path: '/personalGallery',
+      name: '个人图库',
+      component: UserSpace,
+      meta: {
+        access: ACCESS_ENUM.USER,
+      },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
+    },
   ],
 })
 
-// 全局前置守卫保持不变
+// 全局前置守卫
 router.beforeEach((to, from, next) => {
   const loginUserStore = useLoginUserStore()
   const needAccess = to.meta.access as string
@@ -30,7 +70,7 @@ router.beforeEach((to, from, next) => {
 
   // 如果需要权限，判断用户是否登录
   if (!loginUserStore.loginUser.id || loginUserStore.loginUser.id === 0) {
-    next('/picture/user/login')
+    next('/login')
     return
   }
 

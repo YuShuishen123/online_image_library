@@ -23,7 +23,7 @@
       </a-form-item>
       <div class="tips">
         没有账号？
-        <RouterLink to="/picture/user/register">去注册</RouterLink>
+        <RouterLink to="/register">去注册</RouterLink>
       </div>
       <a-form-item>
         <a-button type="primary" html-type="submit" :loading="loading" style="width: 100%"

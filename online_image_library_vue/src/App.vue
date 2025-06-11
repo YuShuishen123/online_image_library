@@ -1,17 +1,18 @@
 <template>
   <a-config-provider :locale="appLocale">
     <div id="app">
-      <router-view/>
+      <HomePage />
     </div>
   </a-config-provider>
 </template>
 
 <script setup lang="ts">
 // 引入 Vue 和 Ant Design Vue
-import {health} from './api/mainController'
+import { health } from './api/mainController'
 import zhCN from 'ant-design-vue/es/locale/zh_CN' // 引入 ant-design-vue 的中文语言包
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn' // 引入 dayjs 的中文语言包
+import HomePage from './pages/HomePageIndex/HomePage.vue'
 
 // 设置 dayjs 默认语言为中文
 dayjs.locale('zh-cn')
