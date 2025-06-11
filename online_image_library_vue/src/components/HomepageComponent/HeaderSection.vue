@@ -6,6 +6,16 @@
         <ul class="nav-links">
           <li>
             <a
+              :class="{ active: isActiveMenu('/'), glow: hoverMenu === 'homepage' }"
+              href="#"
+              @mouseenter="hoverMenu = 'homepage'"
+              @mouseleave="hoverMenu = ''"
+              @click.prevent="router.push('/')"
+              >首页</a
+            >
+          </li>
+          <li>
+            <a
               :class="{ active: isActiveMenu('/AIintroduction'), glow: hoverMenu === 'ai' }"
               href="#"
               @mouseenter="hoverMenu = 'ai'"

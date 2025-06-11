@@ -41,11 +41,6 @@
                 />
               </div>
             </template>
-            <template #actions>
-              <a-button @click.stop="handleDownload(picture.originalImageurl || '')">
-                下载原图
-              </a-button>
-            </template>
             <a-card-meta>
               <template #title>
                 <div class="picture-title">{{ picture.name }}</div>
@@ -138,11 +133,12 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { listPictureVoPage } from '@/api/pictureController'
-import { useLoginUserStore } from '@/stores/useLoginUserStore'
+// import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { message } from 'ant-design-vue'
 
 const searchText = ref('')
 const currentPage = ref(1)
+// const loginUserStore = useLoginUserStore()
 const pageSize = ref(12)
 const total = ref(0)
 const pictureList = ref<API.PictureVO[]>([])
@@ -168,13 +164,40 @@ const handlePreviewCancel = () => {
 
 const handleImageError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.src = '/placeholder.png' // 设置一个默认图片
+  // 增加同样的判断，防止无限循环
+  if (img.src.includes('/placeholder.png')) {
+    return
+  }
+  img.src = '/public/placeholder.png' // 设置一个默认图片
 }
 
 const handlePreviewImageError = (e: Event) => {
   const img = e.target as HTMLImageElement
-  img.src = '/placeholder.png'
-  message.error('图片加载失败')
+
+  // 1. 获取当前图片的数据
+  const pictureData = currentPicture.value
+
+  // 2. 检查此图片是否已经尝试过备用方案，防止死循环
+  //    我们用一个自定义的 data-error 属性来标记
+  if (img.dataset.error === 'true') {
+    // 如果连备用方案都失败了，就直接返回，不再处理
+    return
+  }
+
+  // 3. 标记此图片已经处理过一次错误
+  img.dataset.error = 'true'
+
+  // 4. 尝试加载更高质量的"原图"作为备用方案
+  const originalUrl = pictureData?.originalImageurl
+  if (originalUrl && img.src !== originalUrl) {
+    // 如果存在原图链接，并且当前失败的不是原图链接，就尝试加载原图
+    // 注意：这一次我们先不弹出 message.error，给原图一次加载的机会
+    img.src = originalUrl
+    return // 结束本次函数执行
+  }
+
+  // 5. 如果没有原图链接，或者原图也加载失败了，才执行最终的兜底方案
+  img.src = '/placeholder.png' // 显示最终的占位图
 }
 
 const fetchPictureList = async () => {
@@ -218,26 +241,6 @@ const handlePageChange = () => {
   fetchPictureList()
 }
 
-const handleDownload = (url: string) => {
-  const loginUserStore = useLoginUserStore()
-  if (!loginUserStore.loginUser || loginUserStore.loginUser.id === 0) {
-    message.warning('请先登录后再下载')
-    return
-  }
-
-  if (!url) {
-    message.error('下载链接不存在')
-    return
-  }
-
-  try {
-    window.open(url, '_blank')
-  } catch (error) {
-    message.error('下载失败，请稍后重试')
-    console.error('下载失败:', error)
-  }
-}
-
 // 格式化文件大小
 const formatFileSize = (size: number) => {
   if (!size) return '未知'
@@ -275,12 +278,26 @@ onUnmounted(() => {
   padding: 24px;
   max-width: 90%;
   margin: 0 auto;
+  color: var(--text-color); /* 统一文字颜色 */
 }
 
 .search-bar {
   width: 50%;
   margin: 0 auto;
   margin-bottom: 32px;
+}
+
+/* 搜索框美化 */
+:deep(.ant-input-search .ant-input) {
+  background: rgba(36, 38, 41, 0.7) !important;
+  border-color: rgba(127, 90, 240, 0.3) !important;
+  color: var(--text-color) !important;
+}
+
+:deep(.ant-input-search .ant-input-group-addon .ant-btn) {
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
 }
 
 .picture-list {
@@ -294,26 +311,54 @@ onUnmounted(() => {
   padding: 16px 0;
 }
 
+/* 分页器美化 */
+:deep(.ant-pagination .ant-pagination-item-link),
+:deep(.ant-pagination .ant-pagination-item) {
+  background: rgba(36, 38, 41, 0.7) !important;
+  border-color: rgba(127, 90, 240, 0.3) !important;
+  color: var(--text-color) !important;
+}
+
+:deep(.ant-pagination .ant-pagination-item-active) {
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+  border-color: transparent !important;
+}
+
+:deep(.ant-pagination-options .ant-select-selector) {
+  background: rgba(36, 38, 41, 0.7) !important;
+  border-color: rgba(127, 90, 240, 0.3) !important;
+  color: var(--text-color) !important;
+}
+
+:deep(.ant-pagination-total-text) {
+  color: var(--text-color);
+}
+
 .loading-container,
 .empty-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 400px;
-  background-color: white;
+  background: rgba(36, 38, 41, 0.7);
+  backdrop-filter: blur(10px); /* 毛玻璃 */
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 24px rgba(127, 90, 240, 0.1);
+  color: var(--text-color);
 }
 
 .picture-card {
   transition: all 0.3s ease;
   border-radius: 8px;
   overflow: hidden;
+  background: rgba(36, 38, 41, 0.7) !important; /* 半透明深色背景 */
+  border: 1px solid rgba(127, 90, 240, 0.2) !important;
+  backdrop-filter: blur(10px); /* 毛玻璃 */
 }
 
 .picture-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(127, 90, 240, 0.25) !important;
 }
 
 .image-container {
@@ -336,7 +381,7 @@ onUnmounted(() => {
 .picture-title {
   font-size: 16px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color); /* 文字颜色 */
   margin-bottom: 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -344,7 +389,7 @@ onUnmounted(() => {
 }
 
 .picture-description {
-  color: #666;
+  color: var(--subtitle-color); /* 文字颜色 */
   margin-bottom: 8px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -360,18 +405,14 @@ onUnmounted(() => {
   margin-bottom: 8px;
   padding: 2px 8px;
   border-radius: 4px;
+  background: rgba(127, 90, 240, 0.15) !important; /* 标签背景 */
+  border: none !important;
+  color: var(--primary-color) !important; /* 标签文字颜色 */
 }
 
+/* 移除卡片底部操作区 */
 :deep(.ant-card-actions) {
-  background: #fafafa;
-}
-
-:deep(.ant-card-actions > li) {
-  margin: 0;
-}
-
-:deep(.ant-card-actions > li > span) {
-  color: #1890ff;
+  display: none; /* 隐藏操作区 */
 }
 
 :deep(.ant-modal-content) {
@@ -384,10 +425,11 @@ onUnmounted(() => {
 }
 
 .preview-modal :deep(.ant-modal-content) {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
+  background: rgba(36, 38, 41, 0.9) !important; /* 半透明深色背景 */
+  backdrop-filter: blur(15px); /* 更强的毛玻璃 */
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 8px 48px rgba(127, 90, 240, 0.35) !important; /* 更强的阴影 */
 }
 
 .preview-container {
@@ -416,32 +458,34 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: #666;
+  color: var(--subtitle-color); /* 文字颜色 */
   font-size: 14px;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(36, 38, 41, 0.8); /* 深色背景 */
   border-radius: 0 0 8px 8px;
 }
 
 .preview-info-panel {
   width: 300px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(36, 38, 41, 0.8) !important; /* 半透明深色背景 */
+  backdrop-filter: blur(10px); /* 毛玻璃 */
   border-radius: 8px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
   overflow-y: auto;
+  border-left: 1px solid rgba(127, 90, 240, 0.2); /* 左侧边框 */
 }
 
 .info-header {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(127, 90, 240, 0.2); /* 边框颜色 */
   padding-bottom: 16px;
 }
 
 .info-header h2 {
   margin: 0 0 12px 0;
   font-size: 20px;
-  color: #333;
+  color: var(--text-color); /* 文字颜色 */
 }
 
 .tags-container {
@@ -463,12 +507,12 @@ onUnmounted(() => {
 }
 
 .info-item .label {
-  color: #666;
+  color: var(--subtitle-color); /* 文字颜色 */
   font-size: 14px;
 }
 
 .info-item .value {
-  color: #333;
+  color: var(--text-color); /* 文字颜色 */
   font-size: 15px;
 }
 
@@ -478,7 +522,7 @@ onUnmounted(() => {
 
 .info-item.description .value {
   line-height: 1.6;
-  color: #666;
+  color: var(--subtitle-color); /* 文字颜色 */
 }
 
 :deep(.ant-modal-body) {
