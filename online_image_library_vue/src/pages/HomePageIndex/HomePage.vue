@@ -222,7 +222,7 @@ img {
   margin-bottom: 15px;
 }
 
-.ai-features > p {
+.ai-features>p {
   color: var(--subtitle-color);
   margin-bottom: 50px;
 }

@@ -4,7 +4,7 @@ import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import PictureManagePage from '@/pages/admin/PictureManagePage.vue'
 import ACCESS_ENUM from '@/access/accessEnum'
-import test from '@/pages/HomePageIndex/testPage.vue'
+import HomePage from '@/pages/HomePageIndex/HomePage.vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import BasciLayout from '@/layouts/BasciLayout.vue'
 import PictureShow from '@/pages/user/PictureShow.vue'
@@ -16,7 +16,7 @@ const router = createRouter({
     {
       path: '/',
       name: '独立首页',
-      component: test,
+      component: HomePage,
       meta: {
         access: ACCESS_ENUM.NOT_LOGIN,
       },

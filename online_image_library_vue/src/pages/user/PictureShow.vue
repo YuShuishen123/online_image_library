@@ -1,8 +1,13 @@
 <template>
   <a-layout-content class="home-page">
     <div class="search-bar">
-      <a-input-search v-model:value="searchText" placeholder="输入关键词搜索图片" enter-button="搜索" size="large"
-        @search="handleSearch" />
+      <a-input-search
+        v-model:value="searchText"
+        placeholder="输入关键词搜索图片"
+        enter-button="搜索"
+        size="large"
+        @search="handleSearch"
+      />
     </div>
 
     <div v-if="loading" class="loading-container">
@@ -15,11 +20,25 @@
 
     <div v-else class="picture-list">
       <a-row :gutter="[24, 24]">
-        <a-col v-for="picture in pictureList" :key="picture.id" :xs="24" :sm="12" :md="8" :lg="6" :xl="4">
+        <a-col
+          v-for="picture in pictureList"
+          :key="picture.id"
+          :xs="24"
+          :sm="12"
+          :md="8"
+          :lg="6"
+          :xl="4"
+        >
           <a-card hoverable class="picture-card" @click="showPreview(picture)">
             <template #cover>
               <div class="image-container">
-                <img :src="picture.url" :alt="picture.name" class="picture-image" />
+                <img
+                  :src="picture.url"
+                  :alt="picture.name"
+                  class="picture-image"
+                  loading="lazy"
+                  @error="handleImageError"
+                />
               </div>
             </template>
             <template #actions>
@@ -44,16 +63,32 @@
     </div>
 
     <div v-if="pictureList.length > 0" class="pagination">
-      <a-pagination v-model:current="currentPage" v-model:pageSize="pageSize" :total="total"
-        :pageSizeOptions="['4', '8', '12', '24']" show-size-changer @change="handlePageChange" />
+      <a-pagination
+        v-model:current="currentPage"
+        v-model:pageSize="pageSize"
+        :total="total"
+        :pageSizeOptions="['4', '8', '12', '24']"
+        show-size-changer
+        @change="handlePageChange"
+      />
     </div>
 
     <!-- 图片预览模态框 -->
-    <a-modal v-model:visible="previewVisible" :footer="null" :width="1000" @cancel="handlePreviewCancel"
-      class="preview-modal">
+    <a-modal
+      v-model:visible="previewVisible"
+      :footer="null"
+      :width="1000"
+      @cancel="handlePreviewCancel"
+      class="preview-modal"
+    >
       <div class="preview-container">
         <div class="preview-image-container">
-          <img :src="previewImage" class="preview-image" />
+          <img
+            :src="previewImage"
+            class="preview-image"
+            loading="lazy"
+            @error="handlePreviewImageError"
+          />
           <div class="image-info-bar">
             <span>{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span>
             <span>{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
@@ -85,7 +120,9 @@
             </div>
             <div class="info-item">
               <span class="label">分辨率：</span>
-              <span class="value">{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span>
+              <span class="value"
+                >{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span
+              >
             </div>
             <div class="info-item description">
               <span class="label">图片描述：</span>
@@ -99,7 +136,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { listPictureVoPage } from '@/api/pictureController'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { message } from 'ant-design-vue'
@@ -126,9 +163,23 @@ const showPreview = (picture: API.PictureVO) => {
 const handlePreviewCancel = () => {
   previewVisible.value = false
   currentPicture.value = null
+  previewImage.value = ''
+}
+
+const handleImageError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  img.src = '/placeholder.png' // 设置一个默认图片
+}
+
+const handlePreviewImageError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  img.src = '/placeholder.png'
+  message.error('图片加载失败')
 }
 
 const fetchPictureList = async () => {
+  if (loading.value) return
+
   requestBody.value = {
     current: currentPage.value,
     pageSize: pageSize.value,
@@ -144,13 +195,13 @@ const fetchPictureList = async () => {
     if (res.data.code === 200 && res.data) {
       pictureList.value = res.data.data?.records || []
       total.value = res.data.data?.total || 0
-      console.log('Pictures loaded:', pictureList.value.length)
     } else {
       pictureList.value = []
       total.value = 0
     }
   } catch (error) {
-    console.error('获取图片列表失败啦:', error)
+    console.error('获取图片列表失败:', error)
+    message.error('获取图片列表失败')
     pictureList.value = []
     total.value = 0
   } finally {
@@ -166,10 +217,6 @@ const handleSearch = () => {
 const handlePageChange = () => {
   fetchPictureList()
 }
-
-onMounted(() => {
-  fetchPictureList()
-})
 
 const handleDownload = (url: string) => {
   const loginUserStore = useLoginUserStore()
@@ -209,6 +256,18 @@ const formatDate = (dateStr: string) => {
     minute: '2-digit',
   })
 }
+
+onMounted(() => {
+  fetchPictureList()
+})
+
+onUnmounted(() => {
+  // 清理资源
+  pictureList.value = []
+  currentPicture.value = null
+  previewImage.value = ''
+  previewVisible.value = false
+})
 </script>
 
 <style scoped>

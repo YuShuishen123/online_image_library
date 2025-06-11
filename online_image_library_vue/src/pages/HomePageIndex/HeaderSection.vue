@@ -5,10 +5,10 @@
       <nav>
         <ul class="nav-links">
           <li>
-            <a href="#" @click.prevent="scrollToSection('features')">AI 功能</a>
+            <a href="#">AI 功能</a>
           </li>
           <li>
-            <a href="#" @click.prevent="scrollToSection('gallery')">灵感画廊</a>
+            <a href="#">灵感画廊</a>
           </li>
           <li>
             <a href="#" @click.prevent="goToPublic">公共图库</a>
