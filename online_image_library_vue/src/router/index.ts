@@ -6,6 +6,8 @@ import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import PictureShow from '@/pages/user/PictureShow.vue'
 import UserSpace from '@/pages/user/UserSpace.vue'
+import FeaturesSection from '@/components/HomepageComponent/FeaturesSection.vue'
+import AIIntroduction from '@/pages/AI/AIIntroduction.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,6 +16,14 @@ const router = createRouter({
       path: '/',
       name: '首页',
       component: MainLayout,
+      meta: {
+        access: ACCESS_ENUM.NOT_LOGIN,
+      },
+    },
+    {
+      path: '/AIintroduction',
+      name: 'AI功能详细介绍页',
+      component: AIIntroduction,
       meta: {
         access: ACCESS_ENUM.NOT_LOGIN,
       },
@@ -48,6 +58,14 @@ const router = createRouter({
       component: UserSpace,
       meta: {
         access: ACCESS_ENUM.USER,
+      },
+    },
+    {
+      path: '/AI',
+      name: 'AI',
+      component: FeaturesSection,
+      meta: {
+        access: ACCESS_ENUM.NOT_LOGIN,
       },
     },
     {

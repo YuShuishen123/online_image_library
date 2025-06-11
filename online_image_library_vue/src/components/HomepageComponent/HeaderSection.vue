@@ -5,13 +5,34 @@
       <nav>
         <ul class="nav-links">
           <li>
-            <a href="#">AI 功能</a>
+            <a
+              :class="{ active: isActiveMenu('/AIintroduction'), glow: hoverMenu === 'ai' }"
+              href="#"
+              @mouseenter="hoverMenu = 'ai'"
+              @mouseleave="hoverMenu = ''"
+              @click.prevent="router.push('/AIintroduction')"
+              >智能编辑</a
+            >
           </li>
           <li>
-            <a href="#" @click.prevent="goToPublic">公共图库</a>
+            <a
+              :class="{ active: isActiveMenu('/publicGallery'), glow: hoverMenu === 'public' }"
+              href="#"
+              @mouseenter="hoverMenu = 'public'"
+              @mouseleave="hoverMenu = ''"
+              @click.prevent="goToPublic"
+              >公共图库</a
+            >
           </li>
           <li>
-            <a href="#" @click.prevent="goToUser">个人图库</a>
+            <a
+              :class="{ active: isActiveMenu('/personalGallery'), glow: hoverMenu === 'personal' }"
+              href="#"
+              @mouseenter="hoverMenu = 'personal'"
+              @mouseleave="hoverMenu = ''"
+              @click.prevent="goToUser"
+              >个人图库</a
+            >
           </li>
         </ul>
       </nav>
@@ -43,14 +64,16 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
 import { userLogout } from '@/api/userController'
 import { message } from 'ant-design-vue'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const router = useRouter()
+const route = useRoute()
 const loginUserStore = useLoginUserStore()
+const hoverMenu = ref('')
 
 onMounted(() => {
   loginUserStore.fetchLoginUser()
@@ -75,6 +98,13 @@ function logout() {
     .catch(() => {
       message.error('退出登录失败')
     })
+}
+
+// 判断当前激活菜单
+function isActiveMenu(path: string) {
+  // 首页时不高亮任何菜单项
+  if (route.path === '/') return false
+  return route.path === path
 }
 </script>
 
@@ -114,6 +144,25 @@ function logout() {
 .nav-links a {
   color: var(--text-color);
   font-size: 16px;
+}
+
+.nav-links a.active {
+  color: var(--primary-color);
+  font-weight: bold;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 2px;
+}
+
+.nav-links a.glow {
+  position: relative;
+  z-index: 1;
+  color: var(--primary-color);
+  text-shadow:
+    0 0 8px var(--primary-color),
+    0 0 16px var(--primary-color);
+  transition:
+    text-shadow 0.2s,
+    color 0.2s;
 }
 
 .user-login-status {
