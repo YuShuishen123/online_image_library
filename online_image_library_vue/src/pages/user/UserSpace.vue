@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted, onUnmounted, watch } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { listUserUploadPicturePage } from '@/api/pictureController'
 import { getUserVobyId } from '@/api/userController'
 import { getSpace } from '@/api/spaceController'
@@ -198,6 +198,7 @@ const pictureList = ref<ExtendedPictureVO[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
 const total = ref(0)
+let observer: IntersectionObserver | null = null
 
 // 图片预览相关
 const previewVisible = ref(false)
@@ -208,6 +209,29 @@ const currentPicture = ref<ExtendedPictureVO | null>(null)
 const userSpaceId = ref<string>('')
 const showLoadMoreButton = ref(false)
 const hasMore = ref(true)
+
+// 设置 IntersectionObserver
+const setupObserver = () => {
+  if (!pictureContainer.value) return
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore.value && !loading.value && !loadingMore.value) {
+        fetchPictureList(true)
+      }
+    },
+    { threshold: 0.1 },
+  )
+  observer.observe(pictureContainer.value)
+}
+
+// 滚动监听
+const handleScroll = () => {
+  if (!pictureContainer.value || loading.value || loadingMore.value || !hasMore.value) return
+  const { scrollTop, scrollHeight, clientHeight } = pictureContainer.value
+  if (scrollTop + clientHeight >= scrollHeight - 100) {
+    fetchPictureList(true)
+  }
+}
 
 // 获取用户空间ID
 const fetchUserSpaceId = async () => {
@@ -281,36 +305,22 @@ const fetchPictureList = async (append = false) => {
         pictureList.value = records
       }
 
-      const fetchedCount = records.length
       const loadedCount = pictureList.value.length
       const totalCount = res.data.data.total || 0
 
-      // 判断是否还有更多数据可以加载
+      // 判断是否还有更多数据
       hasMore.value = loadedCount < totalCount
 
-      // 处理第5页的特殊逻辑
-      if (searchForm.current === 5 && hasMore.value) {
-        showLoadMoreButton.value = true
-        hasMore.value = false // 停止自动加载，直到用户点击按钮
-      } else {
-        showLoadMoreButton.value = false // 其他页隐藏按钮
-      }
-
-      // 如果当前页有数据且还有更多数据可加载，则为下一页做准备
-      if (fetchedCount > 0 && loadedCount < totalCount) {
+      // 如果还有更多数据，增加页码
+      if (hasMore.value) {
         searchForm.current = (searchForm.current || 0) + 1
-      } else if (fetchedCount === 0 || loadedCount >= totalCount) {
-        // 如果没有返回记录或者已经加载了所有可用记录，则表示没有更多页了
-        hasMore.value = false
-        showLoadMoreButton.value = false
       }
     } else {
       if (!append) {
         pictureList.value = []
       }
       message.error('获取图片失败')
-      hasMore.value = false // API返回错误或无数据时，设置hasMore为false
-      showLoadMoreButton.value = false
+      hasMore.value = false
     }
   } catch (error) {
     console.error('获取图片列表失败:', error)
@@ -318,8 +328,7 @@ const fetchPictureList = async (append = false) => {
     if (!append) {
       pictureList.value = []
     }
-    hasMore.value = false // 发生错误时，设置hasMore为false
-    showLoadMoreButton.value = false
+    hasMore.value = false
   } finally {
     loading.value = false
     loadingMore.value = false
@@ -397,32 +406,10 @@ const handleAvatarError = (e: Event) => {
   img.src = '/public/default-avatar.png'
 }
 
-const handleScroll = () => {
-  if (!pictureContainer.value) return
-  const { scrollTop, clientHeight, scrollHeight } = pictureContainer.value
-  if (
-    scrollHeight - scrollTop - clientHeight < 200 &&
-    !loadingMore.value &&
-    hasMore.value && // 确保还有更多页可以加载
-    !showLoadMoreButton.value // 只有在不需要显示加载更多按钮时才自动加载
-  ) {
-    fetchPictureList(true)
-  }
-}
-
-watch(
-  () => pictureContainer.value,
-  (newVal) => {
-    if (newVal) {
-      newVal.addEventListener('scroll', handleScroll)
-    }
-  },
-)
-
 const handleLoadMore = () => {
   showLoadMoreButton.value = false
-  hasMore.value = true
-  searchForm.current = (searchForm.current || 0) + 1
+  hasMore.value = true // 重新启用自动加载，以便加载第6页及以后
+  // searchForm.current 已经在 fetchPictureList(current === 5) 中被设置为 6
   fetchPictureList(true)
 }
 
@@ -500,9 +487,16 @@ const handleDelete = async () => {
 onMounted(async () => {
   await fetchUserSpaceId()
   fetchPictureList(false)
+  setupObserver()
+  if (pictureContainer.value) {
+    pictureContainer.value.addEventListener('scroll', handleScroll)
+  }
 })
 
 onUnmounted(() => {
+  if (observer && pictureContainer.value) {
+    observer.unobserve(pictureContainer.value)
+  }
   if (pictureContainer.value) {
     pictureContainer.value.removeEventListener('scroll', handleScroll)
   }
