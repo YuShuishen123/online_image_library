@@ -1,14 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import UserLoginPage from '@/pages/user/UserLoginPage.vue'
-import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
-import UserManagePage from '@/pages/admin/UserManagePage.vue'
-import PictureManagePage from '@/pages/admin/PictureManagePage.vue'
 import ACCESS_ENUM from '@/access/accessEnum'
 import HomePage from '@/pages/HomePageIndex/HomePage.vue'
 import { useLoginUserStore } from '@/stores/useLoginUserStore'
-import BasciLayout from '@/layouts/BasciLayout.vue'
-import PictureShow from '@/pages/user/PictureShow.vue'
-import UserSpace from '@/pages/user/UserSpace.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,60 +13,6 @@ const router = createRouter({
       meta: {
         access: ACCESS_ENUM.NOT_LOGIN,
       },
-    },
-    {
-      path: '/picture', // 统一使用小写路径
-      name: '基础布局',
-      component: BasciLayout,
-      children: [
-        {
-          path: '', // 默认子路由，访问/homepage时显示
-          component: PictureShow,
-          meta: {
-            access: ACCESS_ENUM.NOT_LOGIN,
-          },
-        },
-        {
-          path: 'user/UserSpace',
-          name: '个人空间',
-          component: UserSpace,
-          meta: {
-            access: ACCESS_ENUM.NOT_LOGIN,
-          },
-        },
-        {
-          path: 'user/login',
-          name: '用户登录',
-          component: UserLoginPage,
-          meta: {
-            access: ACCESS_ENUM.NOT_LOGIN,
-          },
-        },
-        {
-          path: 'user/register',
-          name: '用户注册',
-          component: UserRegisterPage,
-          meta: {
-            access: ACCESS_ENUM.NOT_LOGIN,
-          },
-        },
-        {
-          path: 'admin/userManage',
-          name: '用户管理(管理员)',
-          component: UserManagePage,
-          meta: {
-            access: ACCESS_ENUM.ADMIN,
-          },
-        },
-        {
-          path: 'admin/pictureManage',
-          name: '图片管理(管理员)',
-          component: PictureManagePage,
-          meta: {
-            access: ACCESS_ENUM.ADMIN,
-          },
-        },
-      ],
     },
   ],
 })

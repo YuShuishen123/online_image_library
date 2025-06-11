@@ -50,7 +50,7 @@ import { listSpacePicturePage } from '@/api/pictureController'
 import { message } from 'ant-design-vue'
 
 const userInfo = ref<API.LoginUserVO>({})
-const pictureList = ref<API.PictureVO[]>([])
+const pictureList = ref<API.Picture[]>([])
 const currentPage = ref(1)
 const pageSize = ref(16)
 const total = ref(0)
@@ -81,7 +81,7 @@ const fetchPictureList = async () => {
   }
 }
 
-const previewPicture = (pic: API.PictureVO) => {
+const previewPicture = (pic: API.Picture) => {
   previewImage.value = pic.url || ''
   previewVisible.value = true
 }

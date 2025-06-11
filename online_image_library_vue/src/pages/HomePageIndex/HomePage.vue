@@ -4,16 +4,18 @@
     <HeroSection />
     <FeaturesSection />
     <GallerySection />
+    <IntroductionSection />
     <FooterSection />
   </div>
 </template>
 
 <script setup lang="ts">
-import HeaderSection from '@/pages/HomePageIndex/HeaderSection.vue'
-import HeroSection from './HeroSection.vue'
-import FeaturesSection from './FeaturesSection.vue'
-import GallerySection from './GallerySection.vue'
-import FooterSection from './FooterSection.vue'
+import HeaderSection from '@/components/HomepageComponent/HeaderSection.vue'
+import HeroSection from '@/components/HomepageComponent/HeroSection.vue'
+import IntroductionSection from '@/components/HomepageComponent/IntroductionSection.vue'
+import FeaturesSection from '@/components/HomepageComponent/FeaturesSection.vue'
+import GallerySection from '@/components/HomepageComponent/GallerySection.vue'
+import FooterSection from '@/components/HomepageComponent/FooterSection.vue'
 
 // 这里可以添加页面交互逻辑
 </script>
@@ -222,7 +224,7 @@ img {
   margin-bottom: 15px;
 }
 
-.ai-features>p {
+.ai-features > p {
   color: var(--subtitle-color);
   margin-bottom: 50px;
 }
