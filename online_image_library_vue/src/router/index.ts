@@ -8,6 +8,7 @@ import PictureShow from '@/pages/user/PictureShow.vue'
 import UserSpace from '@/pages/user/UserSpace.vue'
 import FeaturesSection from '@/components/HomepageComponent/FeaturesSection.vue'
 import AIIntroduction from '@/pages/AI/AIIntroduction.vue'
+import checkAccess from '@/access/checkAccess'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,29 +76,36 @@ const router = createRouter({
   ],
 })
 
+// 首次获取信息
+let firstFetch = true
+
 // 全局前置守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const loginUserStore = useLoginUserStore()
-  const needAccess = to.meta.access as string
+  let loginUser = loginUserStore.loginUser
 
-  // 如果不需要权限，直接放行
-  if (needAccess === ACCESS_ENUM.NOT_LOGIN) {
-    next()
-    return
+  if (firstFetch) {
+    // 页面首次加载时，等待后端返回信息再校验用户权限
+    await loginUserStore.fetchLoginUser()
+    loginUser = loginUserStore.loginUser
+    firstFetch = false
   }
 
-  // 如果需要权限，判断用户是否登录
-  if (!loginUserStore.loginUser.id || loginUserStore.loginUser.id === 0) {
-    next('/login')
-    return
-  }
+  const needAccess = (to.meta?.access as string) ?? ACCESS_ENUM.NOT_LOGIN
 
-  // 如果需要管理员权限，但用户不是管理员，跳转到首页
-  if (needAccess === ACCESS_ENUM.ADMIN && loginUserStore.loginUser.userRole !== ACCESS_ENUM.ADMIN) {
-    next('/')
-    return
+  // 要跳转的页面必须要登陆
+  if (needAccess !== ACCESS_ENUM.NOT_LOGIN) {
+    // 如果没登陆，跳转到登录页面
+    if (!loginUser || !loginUser.userRole || loginUser.userRole === ACCESS_ENUM.NOT_LOGIN) {
+      next(`/login?redirect=${to.fullPath}`)
+      return
+    }
+    // 如果已经登陆了，但是权限不足，那么跳转到无权限页面
+    if (!checkAccess(loginUser, needAccess)) {
+      next('/')
+      return
+    }
   }
-
   next()
 })
 

@@ -191,3 +191,18 @@ export async function listSpacePicturePage(
     ...(options || {}),
   })
 }
+
+/** 查询当前登陆用户上传的所有图片 */
+export async function listUserUploadPicturePage(
+  body: API.PictureQueryRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponsePagePicture>('/picture/user/upload/picture', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}

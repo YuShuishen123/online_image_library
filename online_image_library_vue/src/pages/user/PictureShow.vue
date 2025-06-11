@@ -141,7 +141,7 @@
 <script lang="ts" setup>
 import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { listPictureVoPage } from '@/api/pictureController'
-// import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { getUserVobyId } from '@/api/userController'
 import { message } from 'ant-design-vue'
 import CustomPagination from '@/components/CustomPagination.vue' // 引入自定义分页组件
 
@@ -167,10 +167,27 @@ const previewVisible = ref(false)
 const previewImage = ref<string>('')
 const currentPicture = ref<API.PictureVO | null>(null)
 
-const showPreview = (picture: API.PictureVO) => {
+const showPreview = async (picture: API.PictureVO) => {
   previewImage.value = picture.url || ''
   currentPicture.value = picture
   previewVisible.value = true
+
+  // 获取用户信息
+  if (picture.userId) {
+    try {
+      const res = await getUserVobyId({
+        id: picture.userId,
+      })
+      if (res.data?.code === 200 && res.data.data?.records?.[0]) {
+        currentPicture.value = {
+          ...currentPicture.value,
+          user: res.data.data.records[0],
+        }
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
+  }
 }
 
 const handlePreviewCancel = () => {
@@ -545,32 +562,37 @@ onUnmounted(() => {
 .info-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px; /* 增加间距 */
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px; /* 增加间距 */
 }
 
 .info-item .label {
-  color: var(--subtitle-color); /* 文字颜色 */
+  color: var(--subtitle-color);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .info-item .value {
-  color: var(--text-color); /* 文字颜色 */
+  color: var(--text-color);
   font-size: 15px;
+  line-height: 1.5;
 }
 
 .info-item.description {
-  margin-top: 8px;
+  margin-top: 12px; /* 增加描述部分的间距 */
 }
 
 .info-item.description .value {
   line-height: 1.6;
-  color: var(--subtitle-color); /* 文字颜色 */
+  color: var(--subtitle-color);
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
 }
 
 :deep(.ant-modal-body) {

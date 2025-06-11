@@ -542,6 +542,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             category = editRequest.getCategory();
             tags = editRequest.getTags();
             spaceId = editRequest.getSpaceId();
+            log.info("编辑图片请求参数spaceId：{}",spaceId);
         } else if (request instanceof PictureUpdateRequest updateRequest) {
             id = updateRequest.getId();
             name = updateRequest.getName();
@@ -554,11 +555,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(spaceId != null && spaceId < 0, ErrorCode.PARAMS_ERROR);
 
-        boolean hasValidUpdate = StringUtils.isNotBlank(name)
-                || StringUtils.isNotBlank(introduction)
-                || StringUtils.isNotBlank(category)
-                || CollectionUtils.isNotEmpty(tags);
-        ThrowUtils.throwIf(!hasValidUpdate, ErrorCode.PARAMS_ERROR, "至少需要一个有效更新字段");
+        boolean allFieldsBlank = StringUtils.isBlank(name)
+                && StringUtils.isBlank(introduction)
+                && StringUtils.isBlank(category)
+                && CollectionUtils.isEmpty(tags)
+                && spaceId == null;
+        ThrowUtils.throwIf(allFieldsBlank, ErrorCode.PARAMS_ERROR, "至少需要一个有效更新字段");
+
 
         LoginState loginState = userService.getLoginState(httpServletRequest);
         Picture oldPicture = getPictureById(id);

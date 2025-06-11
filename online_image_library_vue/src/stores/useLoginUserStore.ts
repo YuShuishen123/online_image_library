@@ -6,7 +6,7 @@ export const useLoginUserStore = defineStore('loginUser', () => {
   // 初始化为未登录状态
   const loginUser = ref<API.LoginUserVO>({
     createTime: '',
-    id: 0,
+    id: 'NOT_LOGIN',
     updateTime: '',
     userAccount: '',
     userAvatar: '',

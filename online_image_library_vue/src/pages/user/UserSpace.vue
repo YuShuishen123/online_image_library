@@ -15,6 +15,7 @@
         class="picture-item"
         @click="showPreview(picture)"
       >
+        <div v-if="picture.spaceId === '0'" class="public-badge">已公开</div>
         <img
           :src="picture.url"
           :alt="picture.name"
@@ -41,93 +42,159 @@
       </div>
     </div>
 
-    <div v-if="loadingMore" class="loading-more">
+    <div v-if="showLoadMoreButton" class="load-more-button">
+      <a-button type="primary" @click="handleLoadMore">加载更多</a-button>
+    </div>
+
+    <div v-else-if="loadingMore" class="loading-more">
       <a-spin tip="加载更多..."></a-spin>
     </div>
 
-    <!-- 图片预览模态框 -->
-    <a-modal
-      v-model:visible="previewVisible"
-      :footer="null"
-      :width="1000"
-      @cancel="handlePreviewCancel"
-      class="preview-modal"
-    >
-      <div class="preview-container">
-        <div class="preview-image-container">
-          <img
-            :src="previewImage"
-            class="preview-image"
-            loading="lazy"
-            @error="handlePreviewImageError"
-          />
-        </div>
-        <div class="preview-info-panel">
-          <div class="info-header">
-            <h2>{{ currentPicture?.name }}</h2>
-            <div class="tags-container">
-              <a-tag v-for="tag in currentPicture?.tags" :key="tag" color="blue">{{ tag }}</a-tag>
+    <!-- 自定义图片预览弹窗 -->
+    <div v-if="previewVisible" class="custom-modal" :class="{ active: previewVisible }">
+      <div class="modal-mask" @click="handlePreviewCancel"></div>
+      <div class="modal-content">
+        <div class="preview-container">
+          <div class="preview-image-container">
+            <img
+              :src="previewImage"
+              class="preview-image"
+              loading="lazy"
+              @error="handlePreviewImageError"
+            />
+          </div>
+          <div class="preview-info-panel">
+            <div class="info-header">
+              <h2>{{ currentPicture?.name }}</h2>
+              <div class="action-buttons" v-if="currentPicture">
+                <a-button
+                  type="primary"
+                  class="action-btn download-btn"
+                  @click="downloadImage(previewImage || '', currentPicture?.name || '')"
+                >
+                  <template #icon><DownloadOutlined /></template>
+                  下载
+                </a-button>
+                <a-button
+                  type="primary"
+                  class="action-btn public-btn"
+                  :class="{ 'is-public': currentPicture.isPublic }"
+                  @click="togglePublicStatus"
+                >
+                  <template #icon><GlobalOutlined /></template>
+                  {{ currentPicture.isPublic ? '取消公开' : '设为公开' }}
+                </a-button>
+                <a-button type="primary" danger class="action-btn delete-btn" @click="handleDelete">
+                  <template #icon><DeleteOutlined /></template>
+                  删除
+                </a-button>
+              </div>
+            </div>
+            <div class="info-content">
+              <div class="info-section uploader-section">
+                <h3>上传者</h3>
+                <div class="uploader-info">
+                  <img
+                    :src="currentPicture?.uploader?.avatar || '/public/default-avatar.png'"
+                    class="uploader-avatar"
+                    alt="Uploader Avatar"
+                    @error="handleAvatarError"
+                  />
+                  <span class="uploader-name">{{
+                    currentPicture?.uploader?.nickname || '未知用户'
+                  }}</span>
+                </div>
+              </div>
+              <div class="info-section">
+                <h3>基本信息</h3>
+                <div class="info-item">
+                  <span class="label">上传时间</span>
+                  <span class="value">{{ formatDate(currentPicture?.createTime || '') }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">原图比例</span>
+                  <span class="value">{{ currentPicture?.picScale || '未知' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">原图大小</span>
+                  <span class="value">{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">分辨率</span>
+                  <span class="value"
+                    >{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span
+                  >
+                </div>
+              </div>
+              <div class="info-section">
+                <h3>图片描述</h3>
+                <div class="description-content">
+                  {{ currentPicture?.introduction || '暂无描述' }}
+                </div>
+              </div>
+              <div class="info-section">
+                <h3>标签</h3>
+                <div class="tags-container">
+                  <a-tag v-for="tag in currentPicture?.tags" :key="tag" color="blue">{{
+                    tag
+                  }}</a-tag>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="info-content">
-            <div class="info-item">
-              <span class="label">上传时间：</span>
-              <span class="value">{{ formatDate(currentPicture?.createTime || '') }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">原图比例：</span>
-              <span class="value">{{ currentPicture?.picScale || '未知' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">原图大小：</span>
-              <span class="value">{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="label">分辨率：</span>
-              <span class="value"
-                >{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span
-              >
-            </div>
-            <div class="info-item description">
-              <span class="label">图片描述：</span>
-              <span class="value">{{ currentPicture?.introduction || '暂无描述' }}</span>
-            </div>
-            <a-button
-              class="download-btn-modal"
-              type="primary"
-              @click.stop="downloadImage(previewImage || '', currentPicture?.name || '')"
-            >
-              <DownOutlined /> 下载
-            </a-button>
-          </div>
         </div>
+        <button class="modal-close" @click="handlePreviewCancel">
+          <span class="close-icon">×</span>
+        </button>
       </div>
-    </a-modal>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, onMounted, onUnmounted, watch } from 'vue'
-import { listSpacePicturePage } from '@/api/pictureController'
-import { message } from 'ant-design-vue'
-import { DownOutlined } from '@ant-design/icons-vue'
+import { listUserUploadPicturePage } from '@/api/pictureController'
+import { getUserVobyId } from '@/api/userController'
+import { getSpace } from '@/api/spaceController'
+import { message, Modal } from 'ant-design-vue'
+import {
+  DownOutlined,
+  DownloadOutlined,
+  GlobalOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons-vue'
+import { editPicture, deletePicture } from '@/api/pictureController'
+
+// 定义上传者信息接口
+interface Uploader {
+  avatar?: string
+  nickname?: string
+}
 
 // 定义搜索表单的类型接口
 interface SearchFormType extends Omit<API.PictureQueryRequest, 'tags'> {
   tags: string
 }
 
+// 扩展 PictureVO 类型，添加 isPublic 和 uploader 属性
+interface ExtendedPictureVO extends API.PictureVO {
+  isPublic: boolean
+  uploader?: Uploader
+  uploaderAvatar?: string
+  uploaderNickname?: string
+}
+
 const pictureContainer = ref<HTMLElement | null>(null)
 const searchForm = reactive<SearchFormType>({
   current: 1,
-  pageSize: 20, // 初始加载20张图片
+  pageSize: 20,
   name: '',
   category: '',
   tags: '',
   sortField: 'createTime',
   sortOrder: 'descend',
 })
-const pictureList = ref<API.PictureVO[]>([])
+const pictureList = ref<ExtendedPictureVO[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
 const total = ref(0)
@@ -135,20 +202,38 @@ const total = ref(0)
 // 图片预览相关
 const previewVisible = ref(false)
 const previewImage = ref<string>('')
-const currentPicture = ref<API.PictureVO | null>(null)
+const currentPicture = ref<ExtendedPictureVO | null>(null)
+
+// 添加新的响应式变量
+const userSpaceId = ref<string>('')
+const showLoadMoreButton = ref(false)
+const hasMore = ref(true)
+
+// 获取用户空间ID
+const fetchUserSpaceId = async () => {
+  try {
+    const res = await getSpace()
+    if (res.data.code === 200 && res.data.data) {
+      userSpaceId.value = res.data.data.id || ''
+    }
+  } catch (error) {
+    console.error('获取用户空间ID失败:', error)
+    message.error('获取用户空间信息失败')
+  }
+}
 
 // 下载图片
 const downloadImage = (url: string, name: string) => {
   const link = document.createElement('a')
   link.href = url
-  link.download = `${name || 'image'}.jpg` // 默认扩展名可根据需要调整
+  link.download = `${name || 'image'}.jpg`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
 }
 
 const fetchPictureList = async (append = false) => {
-  if (loading.value || loadingMore.value) return
+  if (loading.value || loadingMore.value || !hasMore.value) return
 
   if (!append) {
     loading.value = true
@@ -162,25 +247,32 @@ const fetchPictureList = async (append = false) => {
       .map((tag: string) => tag.trim())
       .filter((tag: string) => tag !== '')
 
-    const res = await listSpacePicturePage({
+    const res = await listUserUploadPicturePage({
       ...searchForm,
       current: searchForm.current,
       pageSize: searchForm.pageSize,
       tags: tagsArray.length > 0 ? tagsArray : undefined,
     })
+
     if (res.data.code === 200 && res.data.data) {
       const records = (res.data.data.records || []).map((pic: API.Picture) => {
-        const picVO: API.PictureVO = {
+        const picVO: ExtendedPictureVO = {
           ...pic,
+          userId: pic.userId?.toString(),
           tags: pic.tags
             ? (pic.tags as string)
                 .split(',')
                 .map((tag) => tag.trim())
-                .filter((tag) => tag !== '')
+                .filter((tag: string) => tag !== '')
             : [],
+          isPublic: pic.spaceId === '0',
+          uploader: {
+            avatar: '/public/default-avatar.png',
+            nickname: '未知用户',
+          },
         }
         return picVO
-      }) as API.PictureVO[]
+      }) as ExtendedPictureVO[]
 
       total.value = res.data.data.total || 0
       if (append) {
@@ -188,12 +280,37 @@ const fetchPictureList = async (append = false) => {
       } else {
         pictureList.value = records
       }
-      searchForm.current++
+
+      const fetchedCount = records.length
+      const loadedCount = pictureList.value.length
+      const totalCount = res.data.data.total || 0
+
+      // 判断是否还有更多数据可以加载
+      hasMore.value = loadedCount < totalCount
+
+      // 处理第5页的特殊逻辑
+      if (searchForm.current === 5 && hasMore.value) {
+        showLoadMoreButton.value = true
+        hasMore.value = false // 停止自动加载，直到用户点击按钮
+      } else {
+        showLoadMoreButton.value = false // 其他页隐藏按钮
+      }
+
+      // 如果当前页有数据且还有更多数据可加载，则为下一页做准备
+      if (fetchedCount > 0 && loadedCount < totalCount) {
+        searchForm.current = (searchForm.current || 0) + 1
+      } else if (fetchedCount === 0 || loadedCount >= totalCount) {
+        // 如果没有返回记录或者已经加载了所有可用记录，则表示没有更多页了
+        hasMore.value = false
+        showLoadMoreButton.value = false
+      }
     } else {
       if (!append) {
         pictureList.value = []
       }
       message.error('获取图片失败')
+      hasMore.value = false // API返回错误或无数据时，设置hasMore为false
+      showLoadMoreButton.value = false
     }
   } catch (error) {
     console.error('获取图片列表失败:', error)
@@ -201,16 +318,46 @@ const fetchPictureList = async (append = false) => {
     if (!append) {
       pictureList.value = []
     }
+    hasMore.value = false // 发生错误时，设置hasMore为false
+    showLoadMoreButton.value = false
   } finally {
     loading.value = false
     loadingMore.value = false
   }
 }
 
-const showPreview = (picture: API.PictureVO) => {
+const showPreview = async (picture: ExtendedPictureVO) => {
+  console.log('showPreview called with picture:', picture)
   previewImage.value = picture.url || ''
   currentPicture.value = picture
   previewVisible.value = true
+
+  // 获取用户信息
+  if (picture.userId) {
+    console.log('Fetching user info for userId:', picture.userId)
+    try {
+      const res = await getUserVobyId({
+        id: picture.userId,
+      })
+      console.log('getUserVobyId response:', res)
+      if (res.data?.code === 200 && res.data.data?.records?.[0]) {
+        const userInfo = res.data.data.records[0]
+        console.log('Fetched userInfo:', userInfo)
+        currentPicture.value = {
+          ...currentPicture.value,
+          uploader: {
+            avatar: userInfo.userAvatar || '/public/default-avatar.png',
+            nickname: userInfo.userName || '未知用户',
+          },
+        }
+        console.log('Updated currentPicture.value with uploader:', currentPicture.value)
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
+  } else {
+    console.log('picture.userId is undefined or null. Cannot fetch user info.')
+  }
 }
 
 const handlePreviewCancel = () => {
@@ -242,13 +389,22 @@ const handlePreviewImageError = (e: Event) => {
   img.src = '/public/placeholder.png'
 }
 
+const handleAvatarError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  if (img.src.includes('/default-avatar.png')) {
+    return
+  }
+  img.src = '/public/default-avatar.png'
+}
+
 const handleScroll = () => {
   if (!pictureContainer.value) return
   const { scrollTop, clientHeight, scrollHeight } = pictureContainer.value
   if (
     scrollHeight - scrollTop - clientHeight < 200 &&
     !loadingMore.value &&
-    total.value > pictureList.value.length
+    hasMore.value && // 确保还有更多页可以加载
+    !showLoadMoreButton.value // 只有在不需要显示加载更多按钮时才自动加载
   ) {
     fetchPictureList(true)
   }
@@ -263,7 +419,86 @@ watch(
   },
 )
 
-onMounted(() => {
+const handleLoadMore = () => {
+  showLoadMoreButton.value = false
+  hasMore.value = true
+  searchForm.current = (searchForm.current || 0) + 1
+  fetchPictureList(true)
+}
+
+const togglePublicStatus = async () => {
+  if (!currentPicture.value || !userSpaceId.value) return
+
+  Modal.confirm({
+    title: currentPicture.value.isPublic ? '取消公开' : '设为公开',
+    content: `确定要${currentPicture.value.isPublic ? '取消公开' : '设为公开'}这张图片吗？`,
+    okText: '确定',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        // 如果当前是公开的，则设置为私有（使用用户空间ID）
+        // 如果当前是私有的，则设置为公开（spaceId为0）
+        const newSpaceId = currentPicture.value!.isPublic ? userSpaceId.value : '0'
+
+        const res = await editPicture({
+          id: currentPicture.value!.id,
+          spaceId: newSpaceId,
+        })
+        if (res.data.code === 200) {
+          // 更新本地状态
+          currentPicture.value!.isPublic = !currentPicture.value!.isPublic
+          currentPicture.value!.spaceId = newSpaceId
+
+          // 更新列表中的图片状态
+          const index = pictureList.value.findIndex((pic) => pic.id === currentPicture.value!.id)
+          if (index !== -1) {
+            pictureList.value[index].isPublic = currentPicture.value!.isPublic
+            pictureList.value[index].spaceId = newSpaceId
+          }
+
+          message.success(currentPicture.value!.isPublic ? '已设为公开' : '已取消公开')
+        } else {
+          message.error(res.data.message || '操作失败')
+        }
+      } catch (error) {
+        console.error('更新公开状态失败:', error)
+        message.error('操作失败')
+      }
+    },
+  })
+}
+
+const handleDelete = async () => {
+  if (!currentPicture.value) return
+
+  Modal.confirm({
+    title: '删除图片',
+    content: '确定要删除这张图片吗？此操作不可恢复。',
+    okText: '确定',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        const res = await deletePicture({
+          id: currentPicture.value!.id,
+        })
+        if (res.data.code === 200) {
+          message.success('删除成功')
+          handlePreviewCancel()
+          fetchPictureList(false)
+        } else {
+          message.error(res.data.message || '删除失败')
+        }
+      } catch (error) {
+        console.error('删除图片失败:', error)
+        message.error('删除失败')
+      }
+    },
+  })
+}
+
+onMounted(async () => {
+  await fetchUserSpaceId()
   fetchPictureList(false)
 })
 
@@ -320,14 +555,14 @@ const formatDate = (dateStr: string) => {
 
 .picture-masonry {
   column-count: 2;
-  column-gap: 20px; /* 图片之间的间隙 */
-  width: 70%; /* 宽度达到画面的70% */
+  column-gap: 20px;
+  width: 70%;
   margin: 0 auto;
 }
 
 .picture-item {
   display: inline-block;
-  margin: 0 0 20px; /* 底部间隙 */
+  margin: 0 0 20px;
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
@@ -335,7 +570,7 @@ const formatDate = (dateStr: string) => {
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
-  break-inside: avoid; /* 防止图片在列间断开 */
+  break-inside: avoid;
   cursor: pointer;
   position: relative;
 }
@@ -376,41 +611,65 @@ const formatDate = (dateStr: string) => {
 }
 
 .picture-title {
-  font-weight: bold; /* 使用粗体 */
-  font-size: 14px; /* 保持较小尺寸 */
+  font-weight: bold;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: Arial, sans-serif; /* 美化字体 */
+  font-family: Arial, sans-serif;
   color: #ffffff;
 }
 
 .download-btn {
-  background-color: #a217b4; /* 绿色背景，参考你的图片 */
+  background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
   border: none;
   color: #fff;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 4px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+  position: relative;
   transition:
-    background-color 0.2s,
-    box-shadow 0.2s;
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
 }
 
 .download-btn:hover {
-  background-color: #45a049; /* 悬停时变深 */
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px 3px rgba(127, 90, 240, 0.6);
+}
+
+.download-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0;
+  border-radius: 6px;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.download-btn:hover::after {
+  opacity: 1;
 }
 
 .download-btn :deep(.anticon) {
-  margin-right: 4px; /* 图标与文字间距 */
+  margin-right: 4px;
 }
 
-.tags {
+.tags-container {
+  display: flex;
+  margin-top: 8px;
+}
+
+.tag-masonry {
   margin-top: 8px;
 }
 
@@ -425,65 +684,236 @@ const formatDate = (dateStr: string) => {
   font-size: 12px;
 }
 
-.preview-modal :deep(.ant-modal-content) {
-  background: rgba(20, 22, 24, 0.6); /* 增强毛玻璃效果，半透暗色调 */
-  backdrop-filter: blur(15px); /* 加重毛玻璃效果 */
-  border-radius: 12px;
+/* 自定义弹窗样式 */
+.custom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.custom-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.custom-modal.active .modal-mask {
+  opacity: 1;
+}
+
+.modal-content {
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 1200px;
+  height: 80vh;
+  background: rgba(17, 19, 23, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  border: none; /* 移除任何默认边框 */
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.custom-modal.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(120, 120, 120, 0.8);
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.modal-close:hover {
+  color: #fff;
+}
+
+.close-icon {
+  display: block;
+  line-height: 1;
 }
 
 .preview-container {
   display: flex;
-  gap: 0; /* 移除间隙，使图片与详细信息贴合 */
   height: 100%;
-  align-items: stretch; /* 确保高度自适应 */
-  background: rgba(20, 22, 24, 0.6); /* 统一毛玻璃效果 */
-  backdrop-filter: blur(15px); /* 统一毛玻璃效果 */
+  background: transparent;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .preview-image-container {
   flex: 1;
-  min-width: 0; /* 防止溢出 */
+  min-width: 0;
   display: flex;
-  flex-direction: column;
-  position: relative;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: transparent;
 }
 
 .preview-image {
-  width: 100%;
-  height: 100%; /* 与右侧信息框高度一致 */
-  object-fit: contain; /* 保持宽高比，无空隙 */
-  border-radius: 8px 0 0 8px; /* 左侧圆角 */
-}
-
-.image-info-bar {
-  display: none; /* 移除分辨率和大小信息 */
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .preview-info-panel {
-  width: 300px;
-  background: rgba(20, 22, 24, 0.6); /* 统一毛玻璃效果 */
-  backdrop-filter: blur(15px); /* 统一毛玻璃效果 */
-  border-radius: 0 8px 8px 0; /* 右侧圆角 */
-  padding: 20px;
+  width: 380px;
+  background: rgba(25, 27, 31, 0.7);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   overflow-y: auto;
-  border-left: 1px solid rgba(127, 90, 240, 0.2);
 }
 
 .info-header {
-  border-bottom: 1px solid rgba(127, 90, 240, 0.2);
-  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 20px;
 }
 
 .info-header h2 {
-  margin: 0 0 12px 0;
-  font-size: 20px;
-  color: #e0e0e0; /* 浅灰色，贴合暗色调 */
+  color: #fff;
+  font-size: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 100px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.download-btn {
+  background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
+  border: none;
+}
+
+.public-btn {
+  background: linear-gradient(135deg, #2cb67d 0%, #1a8f5c 100%);
+  border: none;
+}
+
+.public-btn.is-public {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+  border: none;
+}
+
+.info-section {
+  margin-top: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.uploader-section {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.uploader-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.uploader-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.uploader-name {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.info-section h3 {
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.info-item .label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.info-item .value {
+  color: #fff;
+  font-size: 14px;
+}
+
+.description-content {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
 }
 
 .tags-container {
@@ -492,72 +922,60 @@ const formatDate = (dateStr: string) => {
   gap: 8px;
 }
 
-.info-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+:deep(.ant-tag) {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(127, 90, 240, 0.4) !important;
+  border: none !important;
+  color: #7f5af0 !important;
+  font-size: 12px;
 }
 
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .preview-container {
+    flex-direction: column;
+    height: auto;
+  }
 
-.info-item .label {
-  color: #a0a0a0; /* 浅灰色标签 */
-  font-size: 14px;
-}
-
-.info-item .value {
-  color: #d0d0d0; /* 浅灰色值 */
-  font-size: 15px;
-}
-
-.info-item.description {
-  margin-top: 8px;
-}
-
-.info-item.description .value {
-  line-height: 1.6;
-  color: #b0b0b0; /* 稍深灰色描述 */
-}
-
-.download-btn-modal {
-  background-color: #4caf50; /* 绿色下载按钮 */
-  border: none;
-  color: #fff;
-  font-size: 14px;
-  border-radius: 8px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
-  transition:
-    background-color 0.2s,
-    box-shadow 0.2s;
-}
-
-.download-btn-modal:hover {
-  background-color: #45a049; /* 悬停变深 */
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-}
-
-.download-btn-modal :deep(.anticon) {
-  margin-right: 8px; /* 图标与文字间距 */
+  .preview-info-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
 }
 
 @media (min-width: 768px) {
   .picture-masonry {
-    column-count: 3; /* 桌面端显示三列 */
+    column-count: 3;
   }
 }
 
 @media (max-width: 767px) {
   .picture-masonry {
-    column-count: 1; /* 移动端显示一列 */
-    width: 90%; /* 移动端宽度调整 */
+    column-count: 1;
+    width: 90%;
   }
+}
+
+.public-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #52c41a;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1;
+}
+
+.load-more-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  margin-top: 20px;
 }
 </style>

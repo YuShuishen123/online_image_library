@@ -1,5 +1,6 @@
 package springboot.online_image_library.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.v3.oas.annotations.Operation;
@@ -285,9 +286,10 @@ public class PictureController {
             method = "POST")
     @PostMapping("/edit")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
-    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)
+//    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)
     public BaseResponse<Boolean> editPicture(@RequestBody PictureEditRequest pictureEditRequest,
                                              HttpServletRequest request) {
+        log.info(pictureEditRequest.toString());
         Picture picture = pictureService.validateAndBuildPictureUpdate(
                 pictureEditRequest,true, request);
         // 第一次删除缓存
@@ -362,5 +364,30 @@ public class PictureController {
         return ResultUtils.success(picturePage);
 
     }
+
+    /**
+     * 获取当前用户上传的所有图片(分页)
+     */
+    @Operation(
+            summary = "查询用户上传的所有图片(分页)",
+            description = "用于分页查询当前用户上传的所有图片(仅限自己获取)",
+            method = "POST")
+    @PostMapping("/user/upload/picture")
+//    @IdempotentCheck(timeOut = 5, timeUnit = TimeUnit.SECONDS)
+    @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
+    public BaseResponse<Page<Picture>> listUserUploadPicturePage(@RequestBody PictureQueryRequest pictureQueryRequest, HttpServletRequest httpServletRequest) {
+        // 提取分页相关信息
+        long current = pictureQueryRequest.getCurrent();
+        long size = pictureQueryRequest.getPageSize();
+        // 获取登陆用户
+        LoginState loginState = userService.getLoginState(httpServletRequest);
+        QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userId", loginState.getId());
+        // 进行分页查询
+        Page<Picture> picturePage = pictureService.page(new Page<>(current, size), queryWrapper);
+        // 返回Picture数据
+        return ResultUtils.success(picturePage);
+    }
+
 }
 

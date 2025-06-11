@@ -47,7 +47,7 @@
         </ul>
       </nav>
       <div class="user-login-status">
-        <template v-if="loginUserStore.loginUser.id && loginUserStore.loginUser.id !== 0">
+        <template v-if="loginUserStore.loginUser.id && loginUserStore.loginUser.id !== 'NOT_LOGIN'">
           <a-dropdown>
             <template #overlay>
               <a-menu>
@@ -102,7 +102,7 @@ function goToUser() {
 function logout() {
   userLogout()
     .then(() => {
-      loginUserStore.setLoginUser({ id: 0 })
+      loginUserStore.setLoginUser({ id: 'NOT_LOGIN' })
       message.success('退出登录成功')
     })
     .catch(() => {
