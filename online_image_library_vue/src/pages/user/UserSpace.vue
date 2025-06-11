@@ -78,6 +78,16 @@
               <span class="label">原图比例：</span>
               <span class="value">{{ currentPicture?.picScale || '未知' }}</span>
             </div>
+            <div class="info-item">
+              <span class="label">原图大小：</span>
+              <span class="value">{{ formatFileSize(currentPicture?.picSize || 0) }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">分辨率：</span>
+              <span class="value"
+                >{{ currentPicture?.picWidth }} x {{ currentPicture?.picHeight }}</span
+              >
+            </div>
             <div class="info-item description">
               <span class="label">图片描述：</span>
               <span class="value">{{ currentPicture?.introduction || '暂无描述' }}</span>
@@ -416,11 +426,12 @@ const formatDate = (dateStr: string) => {
 }
 
 .preview-modal :deep(.ant-modal-content) {
-  background: rgba(36, 38, 41, 0.7); /* 暗色调毛玻璃效果 */
-  backdrop-filter: blur(10px); /* 毛玻璃效果 */
+  background: rgba(20, 22, 24, 0.6); /* 增强毛玻璃效果，半透暗色调 */
+  backdrop-filter: blur(15px); /* 加重毛玻璃效果 */
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: none; /* 移除任何默认边框 */
 }
 
 .preview-container {
@@ -428,6 +439,8 @@ const formatDate = (dateStr: string) => {
   gap: 0; /* 移除间隙，使图片与详细信息贴合 */
   height: 100%;
   align-items: stretch; /* 确保高度自适应 */
+  background: rgba(20, 22, 24, 0.6); /* 统一毛玻璃效果 */
+  backdrop-filter: blur(15px); /* 统一毛玻璃效果 */
 }
 
 .preview-image-container {
@@ -440,7 +453,7 @@ const formatDate = (dateStr: string) => {
 
 .preview-image {
   width: 100%;
-  height: 100%; /* 填满容器，根据图片宽高比自适应 */
+  height: 100%; /* 与右侧信息框高度一致 */
   object-fit: contain; /* 保持宽高比，无空隙 */
   border-radius: 8px 0 0 8px; /* 左侧圆角 */
 }
@@ -451,8 +464,8 @@ const formatDate = (dateStr: string) => {
 
 .preview-info-panel {
   width: 300px;
-  background: rgba(36, 38, 41, 0.8); /* 暗色调 */
-  backdrop-filter: blur(5px); /* 轻微毛玻璃效果 */
+  background: rgba(20, 22, 24, 0.6); /* 统一毛玻璃效果 */
+  backdrop-filter: blur(15px); /* 统一毛玻璃效果 */
   border-radius: 0 8px 8px 0; /* 右侧圆角 */
   padding: 20px;
   display: flex;
