@@ -8,7 +8,9 @@ import PictureShow from '@/pages/user/PictureShow.vue'
 import UserSpace from '@/pages/user/UserSpace.vue'
 import FeaturesSection from '@/components/HomepageComponent/FeaturesSection.vue'
 import AIIntroduction from '@/pages/AI/AIIntroduction.vue'
+import Text2ImagePage from '@/pages/AiServicePage/Text2ImagePage.vue'
 import checkAccess from '@/access/checkAccess'
+import { message } from 'ant-design-vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,6 +72,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/AI/text2image',
+      name: 'Text2Image',
+      component: Text2ImagePage,
+      meta: {
+        access: ACCESS_ENUM.USER,
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },
@@ -97,6 +107,7 @@ router.beforeEach(async (to, from, next) => {
   if (needAccess !== ACCESS_ENUM.NOT_LOGIN) {
     // 如果没登陆，跳转到登录页面
     if (!loginUser || !loginUser.userRole || loginUser.userRole === ACCESS_ENUM.NOT_LOGIN) {
+      message.error('该功能需登录后使用，请先登录。')
       next(`/login?redirect=${to.fullPath}`)
       return
     }

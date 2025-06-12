@@ -1,5 +1,9 @@
 <template>
   <div class="picture-container" ref="pictureContainer">
+    <!-- 添加返回顶部按钮 -->
+    <div class="back-to-top" :class="{ visible: showBackToTop }" @click="scrollToTop">
+      <UpOutlined />
+    </div>
     <!-- 添加空间信息展示区域 -->
     <div class="space-info-container">
       <div class="space-info-card">
@@ -11,37 +15,55 @@
         </div>
         <div class="space-stats">
           <div class="stat-item">
-            <span class="stat-label">图片数量</span>
-            <div class="progress-container">
-              <a-progress
-                :percent="(Number(spaceInfo.totalCount) / Number(spaceInfo.maxCount)) * 100"
-                :show-info="false"
-                :stroke-color="{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
+            <span class="stat-label"> <i class="icon-image"></i> 图片数量 </span>
+            <div class="stat-value">
+              {{ spaceInfo.totalCount || 0 }}
+              <span class="stat-unit">/{{ spaceInfo.maxCount || 0 }}</span>
+            </div>
+            <div class="stat-progress">
+              <div
+                class="stat-progress-bar"
+                :style="{
+                  width: `${Math.min((Number(spaceInfo.totalCount) / Number(spaceInfo.maxCount)) * 100, 100)}%`,
                 }"
-              />
-              <span class="progress-text">
-                {{ spaceInfo.totalCount || 0 }}/{{ spaceInfo.maxCount || 0 }}
-              </span>
+              ></div>
+            </div>
+            <div class="stat-details">
+              <span
+                >已使用
+                {{
+                  ((Number(spaceInfo.totalCount) / Number(spaceInfo.maxCount)) * 100).toFixed(1)
+                }}%</span
+              >
+              >
+              <span>剩余 {{ (spaceInfo.maxCount || 0) - (spaceInfo.totalCount || 0) }}</span>
             </div>
           </div>
           <div class="stat-item">
-            <span class="stat-label">存储空间</span>
-            <div class="progress-container">
-              <a-progress
-                :percent="(Number(spaceInfo.totalSize) / Number(spaceInfo.maxSize)) * 100"
-                :show-info="false"
-                :stroke-color="{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
+            <span class="stat-label"> <i class="icon-storage"></i> 存储空间 </span>
+            <div class="stat-value">
+              {{ formatFileSize(Number(spaceInfo.totalSize) || 0) }}
+              <span class="stat-unit">/{{ formatFileSize(Number(spaceInfo.maxSize) || 0) }}</span>
+            </div>
+            <div class="stat-progress">
+              <div
+                class="stat-progress-bar"
+                :style="{
+                  width: `${Math.min((Number(spaceInfo.totalSize) / Number(spaceInfo.maxSize)) * 100, 100)}%`,
                 }"
-              />
-              <span class="progress-text">
-                {{ formatFileSize(Number(spaceInfo.totalSize) || 0) }}/{{
-                  formatFileSize(Number(spaceInfo.maxSize) || 0)
-                }}
-              </span>
+              ></div>
+            </div>
+            <div class="stat-details">
+              <span
+                >已使用
+                {{
+                  ((Number(spaceInfo.totalSize) / Number(spaceInfo.maxSize)) * 100).toFixed(1)
+                }}%</span
+              >
+              <span
+                >剩余
+                {{ formatFileSize(Number(spaceInfo.maxSize) - Number(spaceInfo.totalSize)) }}</span
+              >
             </div>
           </div>
         </div>
@@ -205,11 +227,13 @@ import { listUserUploadPicturePage } from '@/api/pictureController'
 import { getSpace } from '@/api/spaceController'
 import { useUploaderStore } from '@/stores/useUploaderStore'
 import { message, Modal } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import {
   DownOutlined,
   DownloadOutlined,
   GlobalOutlined,
   DeleteOutlined,
+  UpOutlined,
 } from '@ant-design/icons-vue'
 import { editPicture, deletePicture } from '@/api/pictureController'
 
@@ -247,6 +271,7 @@ const loading = ref(false)
 const loadingMore = ref(false)
 const total = ref(0)
 let observer: IntersectionObserver | null = null
+const isRequesting = ref(false)
 
 // 图片预览相关
 const previewVisible = ref(false)
@@ -259,12 +284,27 @@ const showLoadMoreButton = ref(false)
 const hasMore = ref(true)
 
 // 添加空间信息相关的响应式变量
-const spaceInfo = ref<API.Space>({
+interface SpaceInfo {
+  id: string
+  spaceName?: string
+  spaceLevel?: number
+  maxSize?: number
+  maxCount?: number
+  totalSize?: number
+  totalCount?: number
+  userId?: string
+  createTime?: string
+  editTime?: string
+  updateTime?: string
+  isDelete?: number
+}
+
+const spaceInfo = ref<SpaceInfo>({
   id: '',
-  spaceName: '',
+  spaceName: '我的空间',
   spaceLevel: 1,
-  maxSize: 0,
-  maxCount: 0,
+  maxSize: 1024 * 1024 * 100, // 默认100MB
+  maxCount: 100,
   totalSize: 0,
   totalCount: 0,
   userId: '',
@@ -272,6 +312,18 @@ const spaceInfo = ref<API.Space>({
   editTime: '',
   updateTime: '',
   isDelete: 0,
+})
+
+// 添加返回顶部相关变量
+const showBackToTop = ref(false)
+
+const router = useRouter()
+
+// 添加路由守卫
+router.beforeEach((to, from, next) => {
+  // 在路由切换前滚动到顶部
+  window.scrollTo(0, 0)
+  next()
 })
 
 // 设置 IntersectionObserver
@@ -290,6 +342,9 @@ const setupObserver = () => {
 
 // 滚动监听
 const handleScroll = () => {
+  // 检查是否需要显示返回顶部按钮
+  showBackToTop.value = window.scrollY > 300
+
   if (!pictureContainer.value || loading.value || loadingMore.value || !hasMore.value) return
   const { scrollTop, scrollHeight, clientHeight } = document.documentElement
   if (scrollTop + clientHeight >= scrollHeight - 100) {
@@ -302,8 +357,18 @@ const fetchUserSpaceId = async () => {
   try {
     const res = await getSpace()
     if (res.data.code === 200 && res.data.data) {
-      userSpaceId.value = res.data.data.id || ''
-      spaceInfo.value = res.data.data
+      userSpaceId.value = res.data.data?.id || ''
+      spaceInfo.value = {
+        ...spaceInfo.value,
+        ...res.data.data,
+        id: res.data.data?.id || '',
+        spaceName: res.data.data?.spaceName || '我的空间',
+        spaceLevel: res.data.data?.spaceLevel || 1,
+        maxSize: res.data.data?.maxSize || 1024 * 1024 * 100,
+        maxCount: res.data.data?.maxCount || 100,
+        totalSize: res.data.data?.totalSize || 0,
+        totalCount: res.data.data?.totalCount || 0,
+      }
     }
   } catch (error) {
     console.error('获取用户空间信息失败:', error)
@@ -322,13 +387,15 @@ const downloadImage = (url: string, name: string) => {
 }
 
 const fetchPictureList = async (append = false) => {
-  if (loading.value || loadingMore.value || !hasMore.value) return
+  if (loading.value || loadingMore.value || !hasMore.value || isRequesting.value) return
 
   if (!append) {
     loading.value = true
   } else {
     loadingMore.value = true
   }
+
+  isRequesting.value = true
 
   try {
     const tagsArray = searchForm.tags
@@ -373,10 +440,8 @@ const fetchPictureList = async (append = false) => {
       const loadedCount = pictureList.value.length
       const totalCount = res.data.data.total || 0
 
-      // 判断是否还有更多数据
-      hasMore.value = loadedCount < totalCount
+      hasMore.value = loadedCount < totalCount && records.length === searchForm.pageSize
 
-      // 如果还有更多数据，增加页码
       if (hasMore.value) {
         searchForm.current = (searchForm.current || 0) + 1
       }
@@ -397,6 +462,7 @@ const fetchPictureList = async (append = false) => {
   } finally {
     loading.value = false
     loadingMore.value = false
+    isRequesting.value = false
   }
 }
 
@@ -457,8 +523,7 @@ const handleAvatarError = (e: Event) => {
 
 const handleLoadMore = () => {
   showLoadMoreButton.value = false
-  hasMore.value = true // 重新启用自动加载，以便加载第6页及以后
-  // searchForm.current 已经在 fetchPictureList(current === 5) 中被设置为 6
+  hasMore.value = true
   fetchPictureList(true)
 }
 
@@ -472,8 +537,6 @@ const togglePublicStatus = async () => {
     cancelText: '取消',
     async onOk() {
       try {
-        // 如果当前是公开的，则设置为私有（使用用户空间ID）
-        // 如果当前是私有的，则设置为公开（spaceId为0）
         const newSpaceId = currentPicture.value!.isPublic ? userSpaceId.value : '0'
 
         const res = await editPicture({
@@ -481,11 +544,9 @@ const togglePublicStatus = async () => {
           spaceId: newSpaceId,
         })
         if (res.data.code === 200) {
-          // 更新本地状态
           currentPicture.value!.isPublic = !currentPicture.value!.isPublic
           currentPicture.value!.spaceId = newSpaceId
 
-          // 更新列表中的图片状态
           const index = pictureList.value.findIndex((pic) => pic.id === currentPicture.value!.id)
           if (index !== -1) {
             pictureList.value[index].isPublic = currentPicture.value!.isPublic
@@ -533,7 +594,17 @@ const handleDelete = async () => {
   })
 }
 
+// 添加返回顶部函数
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
+}
+
 onMounted(async () => {
+  // 确保页面加载时滚动到顶部
+  window.scrollTo(0, 0)
   await fetchUserSpaceId()
   fetchPictureList(false)
   setupObserver()
@@ -545,6 +616,8 @@ onUnmounted(() => {
     observer.unobserve(pictureContainer.value)
   }
   window.removeEventListener('scroll', handleScroll)
+  // 确保组件卸载时滚动到顶部
+  window.scrollTo(0, 0)
   pictureList.value = []
   currentPicture.value = null
   previewImage.value = ''
@@ -1034,12 +1107,19 @@ const formatDate = (dateStr: string) => {
 }
 
 .space-info-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.space-info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .space-header {
@@ -1054,6 +1134,7 @@ const formatDate = (dateStr: string) => {
   font-weight: 600;
   color: #fff;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .space-level {
@@ -1064,53 +1145,101 @@ const formatDate = (dateStr: string) => {
 .level-badge {
   background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
   color: white;
-  padding: 4px 12px;
+  padding: 6px 16px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
+  box-shadow: 0 4px 12px rgba(127, 90, 240, 0.3);
 }
 
 .space-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
 }
 
 .stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
 }
 
 .stat-label {
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
 }
 
-.progress-container {
-  position: relative;
-  width: 100%;
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 8px 0;
 }
 
-.progress-text {
-  position: absolute;
-  right: 0;
-  top: -20px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+.stat-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
 }
 
-:deep(.ant-progress-bg) {
+.stat-progress-bar {
+  height: 100%;
   background: linear-gradient(90deg, #7f5af0 0%, #a217b4 100%);
+  border-radius: 2px;
+  transition: width 0.6s ease;
 }
 
-:deep(.ant-progress-outer) {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+.stat-details {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-:deep(.ant-progress-inner) {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+/* 添加返回顶部按钮样式 */
+.back-to-top {
+  position: fixed;
+  right: 40px;
+  bottom: 40px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.back-to-top:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.back-to-top :deep(.anticon) {
+  color: white;
+  font-size: 20px;
 }
 </style>

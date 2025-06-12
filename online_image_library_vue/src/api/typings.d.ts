@@ -38,7 +38,7 @@ declare namespace API {
   type BaseResponseObject = {
     code?: number
     message?: string
-    data?: Record<string, unknown>
+    data?: Text2ImageTaskResponse | Record<string, unknown>
   }
 
   type BaseResponsePagePicture = {
@@ -130,6 +130,7 @@ declare namespace API {
 
   type Input = {
     prompt?: string
+    negativePrompt?: string
     function?: string
     baseImageUrl?: string
     maskImageUrl?: string
@@ -365,7 +366,40 @@ declare namespace API {
   type Text2ImageRequest = {
     model?: string
     input?: Input
-    parameters?: Parameters
+    parameters?: Text2ImageParameters
+  }
+
+  type Text2ImageParameters = {
+    watermark?: boolean
+    n?: number
+    seed?: number
+    steps?: number
+    width?: number
+    height?: number
+    prompt_extend?: boolean
+    shift?: number
+    cfg?: number
+  }
+
+  type Text2ImageTaskResponse = {
+    output?: {
+      task_id?: string
+      task_status?: 'RUNNING' | 'SUCCEEDED' | 'FAILED'
+      submit_time?: string
+      scheduled_time?: string
+      end_time?: string
+      task_metrics?: {
+        total?: number
+        succeeded?: number
+        failed?: number
+      }
+      results?: Array<{ url: string }>
+      error?: string
+    }
+    usage?: {
+      image_count?: number
+    }
+    request_id?: string
   }
 
   type UniversalImageEditingRequestBody = {

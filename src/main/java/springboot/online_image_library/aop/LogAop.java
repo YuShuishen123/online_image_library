@@ -51,7 +51,7 @@ public class LogAop {
         log.info("类方法: {}.{}",
                 method.getDeclaringClass().getName(),
                 method.getName());
-        log.debug("方法参数: {}", Arrays.toString(joinPoint.getArgs()));
+        log.info("方法参数: {}", Arrays.toString(joinPoint.getArgs()));
 
         // 记录方法执行时间
         long startTime = System.currentTimeMillis();

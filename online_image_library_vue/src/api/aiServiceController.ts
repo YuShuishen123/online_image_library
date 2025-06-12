@@ -55,21 +55,20 @@ export async function createUniversalImageTask(
   )
 }
 
-/** 查询任务 查询任务 GET /pictureAiService/pictureAiService/queryOutPaintingTask */
+/** 查询任务 查询任务 POST /pictureAiService/pictureAiService/queryOutPaintingTask */
 export async function queryOutPaintingTask(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.queryOutPaintingTaskParams,
+  body: API.CheckTaskStatusRequest,
   options?: { [key: string]: any },
 ) {
   return request<API.BaseResponseObject>(
     '/pictureAiService/pictureAiService/queryOutPaintingTask',
     {
-      method: 'GET',
-      params: {
-        ...params,
-        checkTaskStatusRequest: undefined,
-        ...params['checkTaskStatusRequest'],
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      data: body,
       ...(options || {}),
     },
   )

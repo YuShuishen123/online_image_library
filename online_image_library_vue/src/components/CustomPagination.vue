@@ -1,16 +1,46 @@
 <template>
-  <a-pagination
-    v-model:current="currentPage"
-    v-model:pageSize="pageSize"
-    :total="total"
-    :pageSizeOptions="pageSizeOptions"
-    show-size-changer
-    @change="handlePageChange"
-  />
+  <div class="custom-pagination">
+    <div class="pagination-info">共 {{ total }} 条</div>
+    <div class="pagination-controls">
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === 1"
+        @click="changePage(currentPage - 1)"
+      >
+        &lt;
+      </button>
+
+      <template v-for="page in visiblePages" :key="page">
+        <button v-if="page === '...'" class="pagination-ellipsis" disabled>...</button>
+        <button
+          v-else
+          class="pagination-btn"
+          :class="{ active: page === currentPage }"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+      </template>
+
+      <button
+        class="pagination-btn"
+        :disabled="currentPage === totalPages"
+        @click="changePage(currentPage + 1)"
+      >
+        >
+      </button>
+
+      <select class="page-size-select" v-model="localPageSize" @change="handlePageSizeChange">
+        <option v-for="option in pageSizeOptions" :value="option" :key="option">
+          {{ option }}条/页
+        </option>
+      </select>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   current: { type: Number, default: 1 },
@@ -22,7 +52,47 @@ const props = defineProps({
 const emit = defineEmits<{ (e: 'change', current: number, pageSize: number): void }>()
 
 const currentPage = ref(props.current)
-const pageSize = ref(props.pageSize)
+const localPageSize = ref(props.pageSize)
+
+const totalPages = computed(() => {
+  return Math.ceil(props.total / localPageSize.value)
+})
+
+const visiblePages = computed(() => {
+  const pages = []
+  const maxVisible = 5
+  let startPage = 1
+  let endPage = totalPages.value
+
+  if (totalPages.value > maxVisible) {
+    startPage = Math.max(currentPage.value - 2, 1)
+    endPage = Math.min(currentPage.value + 2, totalPages.value)
+
+    if (startPage > 1) {
+      pages.push(1)
+      if (startPage > 2) {
+        pages.push('...')
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+
+    if (endPage < totalPages.value) {
+      if (endPage < totalPages.value - 1) {
+        pages.push('...')
+      }
+      pages.push(totalPages.value)
+    }
+  } else {
+    for (let i = 1; i <= totalPages.value; i++) {
+      pages.push(i)
+    }
+  }
+
+  return pages
+})
 
 watch(
   () => props.current,
@@ -34,47 +104,112 @@ watch(
 watch(
   () => props.pageSize,
   (newVal) => {
-    pageSize.value = newVal
+    localPageSize.value = newVal
   },
 )
 
-const handlePageChange = (current: number, size: number) => {
-  emit('change', current, size)
+const changePage = (page: number | string) => {
+  if (typeof page === 'string' || page < 1 || page > totalPages.value || page === currentPage.value)
+    return
+  currentPage.value = page
+  emit('change', currentPage.value, localPageSize.value)
+}
+
+const handlePageSizeChange = () => {
+  currentPage.value = 1
+  emit('change', currentPage.value, localPageSize.value)
 }
 </script>
 
 <style scoped>
-:deep(.ant-pagination .ant-pagination-item-link),
-:deep(.ant-pagination .ant-pagination-item) {
-  background: #ffffff !important;
-  border: 1px solid #000000 !important;
-  color: #000000 !important;
+.custom-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  padding: 10px;
+  background: #181818;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.ant-pagination .ant-pagination-item-link-icon) {
-  color: #000000 !important;
+.pagination-info {
+  font-size: 14px;
+  color: #a3a0a0;
+  font-weight: bold;
+  margin-right: 10px;
 }
 
-:deep(.ant-pagination .ant-pagination-item:hover),
-:deep(.ant-pagination .ant-pagination-item-link:hover) {
-  background: #f0f0f0 !important;
-  border-color: var(--primary-color) !important;
-  color: var(--primary-color) !important;
+.pagination-controls {
+  display: flex;
+  gap: 5px;
 }
 
-:deep(.ant-pagination .ant-pagination-item-active) {
-  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
-  border-color: transparent !important;
-  color: #fff !important;
+/**
+按钮标准
+*/
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border: 2px solid #333;
+  background: #565555;
+  color: #333;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-:deep(.ant-pagination-options .ant-select-selector) {
-  background: #ffffff !important;
-  border-color: #000000 !important;
-  color: #000000 !important;
+.pagination-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #666;
 }
 
-:deep(.ant-pagination-total-text) {
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-btn.active {
+  background: #ac0cd0;
   color: #fff;
+  border-color: #ac0cd0;
+  box-shadow: 0 0 10px rgba(24, 144, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.pagination-ellipsis {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #565555;
+  color: #333;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+}
+
+.page-size-select {
+  height: 40px;
+  padding: 0 10px;
+  border: 2px solid #333;
+  background: #565555;
+  color: #333;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .custom-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 </style>

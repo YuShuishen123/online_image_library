@@ -4,7 +4,7 @@
       <div class="feature-text">
         <h2>文生图</h2>
         <p>输入一句描述，AI自动生成高质量图片，激发你的无限灵感。</p>
-        <a class="try-btn" @click="goTo('/ai/txt2img')">去试试</a>
+        <a class="try-btn" @click="goTo('/AI/text2image')">去试试</a>
       </div>
       <div class="feature-img">
         <img

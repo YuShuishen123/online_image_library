@@ -66,9 +66,9 @@ public class PictureAIServiceController {
      */
     @Operation(summary = "查询任务",
             description = "查询任务",
-            method = "GET")
+            method = "POST")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
-    @GetMapping("/pictureAiService/queryOutPaintingTask")
+    @PostMapping("/pictureAiService/queryOutPaintingTask")
     public BaseResponse<Object> queryOutPaintingTask(@RequestBody CheckTaskStatusRequest checkTaskStatusRequest) {
         // 参数校验
         ThrowUtils.throwIf(checkTaskStatusRequest == null || checkTaskStatusRequest.getTaskId() == null || checkTaskStatusRequest.getTaskType() == null, ErrorCode.PARAMS_ERROR, "参数为空");
