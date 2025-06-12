@@ -1,9 +1,26 @@
 <template>
   <div class="text2image-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h1>AI 文生图</h1>
-      <p class="subtitle">输入文字描述，让 AI 为你创造独特的图像</p>
+    <div class="header-section">
+      <div class="header-content">
+        <h1 class="title">AI 文生图</h1>
+        <p class="description">
+          通过自然语言描述，让 AI 为您生成精美的图片。支持多种风格和参数调整，让创作更加自由。
+        </p>
+        <div class="feature-tags">
+          <span class="feature-tag">
+            <PictureOutlined />
+            高质量图片
+          </span>
+          <span class="feature-tag">
+            <SettingOutlined />
+            参数可调
+          </span>
+          <span class="feature-tag">
+            <ThunderboltOutlined />
+            快速生成
+          </span>
+        </div>
+      </div>
     </div>
 
     <!-- 主要内容区域 -->
@@ -14,7 +31,11 @@
           <h3>基础设置</h3>
           <div class="form-item">
             <label>模型选择</label>
-            <a-select v-model:value="formData.model" placeholder="请选择模型" class="custom-select">
+            <a-select
+              v-model:value="store.formData.model"
+              placeholder="请选择模型"
+              class="custom-select"
+            >
               <a-select-option value="wanx2.1-t2i-turbo"
                 >Wanx 2.1 T2I Turbo (快速生成)</a-select-option
               >
@@ -38,7 +59,7 @@
           <div class="form-item">
             <label>生成数量</label>
             <a-slider
-              v-model:value="formData.parameters.n"
+              v-model:value="store.formData.parameters.n"
               :min="1"
               :max="4"
               :step="1"
@@ -48,7 +69,11 @@
 
           <div class="form-item">
             <label>分辨率</label>
-            <a-select v-model:value="resolution" placeholder="请选择分辨率" class="custom-select">
+            <a-select
+              v-model:value="store.resolution"
+              placeholder="请选择分辨率"
+              class="custom-select"
+            >
               <a-select-option value="512x512">512 x 512</a-select-option>
               <a-select-option value="768x768">768 x 768</a-select-option>
               <a-select-option value="1024x1024">1024 x 1024</a-select-option>
@@ -59,7 +84,10 @@
 
           <div class="form-item">
             <label>智能改写提示词</label>
-            <a-switch v-model:checked="formData.parameters.prompt_extend" class="custom-switch" />
+            <a-switch
+              v-model:checked="store.formData.parameters.prompt_extend"
+              class="custom-switch"
+            />
             <span class="switch-tip">开启后会对提示词进行智能优化，增加3-4秒处理时间</span>
           </div>
         </div>
@@ -72,7 +100,7 @@
               <span style="color: red; margin-left: 4px">*</span>
             </label>
             <a-textarea
-              v-model:value="formData.input.prompt"
+              v-model:value="store.formData.input.prompt"
               placeholder="例如：一只可爱的猫咪，超现实主义，柔和的色彩"
               :rows="4"
               class="custom-textarea prompt-textarea"
@@ -82,7 +110,7 @@
           <div class="form-item">
             <label>负向提示词</label>
             <a-textarea
-              v-model:value="formData.input.negativePrompt"
+              v-model:value="store.formData.input.negativePrompt"
               placeholder="例如：模糊，低质量，扭曲，丑陋"
               :rows="4"
               class="custom-textarea prompt-textarea"
@@ -93,17 +121,19 @@
         <div class="panel-section">
           <h3>高级设置</h3>
           <div class="form-item">
-            <a-tooltip
-              title="随机种子用于控制图片生成的可重复性，相同的种子和参数会生成相似的图片。"
-            >
-              <label>随机种子</label>
-            </a-tooltip>
-            <a-input-number
-              v-model:value="formData.parameters.seed"
-              :min="0"
-              :max="999999"
-              class="custom-input seed-input"
-            />
+            <span class="label">随机种子</span>
+            <div class="seed-control">
+              <a-input-number
+                v-model:value="store.formData.parameters.seed"
+                :min="0"
+                :max="2147483647"
+                class="seed-input"
+              />
+              <a-button type="primary" class="random-seed-btn" @click="generateRandomSeed">
+                <template #icon><SyncOutlined /></template>
+                随机种子
+              </a-button>
+            </div>
           </div>
 
           <div class="form-item">
@@ -113,7 +143,7 @@
               <label>去噪推理步数</label>
             </a-tooltip>
             <a-slider
-              v-model:value="formData.parameters.steps"
+              v-model:value="store.formData.parameters.steps"
               :min="20"
               :max="80"
               :step="1"
@@ -126,7 +156,7 @@
               <label>图像生成内容偏移量 (Shift)</label>
             </a-tooltip>
             <a-slider
-              v-model:value="formData.parameters.shift"
+              v-model:value="store.formData.parameters.shift"
               :min="0"
               :max="10"
               :step="0.1"
@@ -141,7 +171,7 @@
               <label>引导系数 (CFG)</label>
             </a-tooltip>
             <a-slider
-              v-model:value="formData.parameters.cfg"
+              v-model:value="store.formData.parameters.cfg"
               :min="4"
               :max="5"
               :step="0.1"
@@ -153,11 +183,11 @@
         <div class="action-buttons">
           <a-button
             type="primary"
-            :loading="generating"
+            :loading="store.isGenerating"
             @click="handleGenerate"
             class="generate-btn"
           >
-            {{ generating ? '生成中...' : '开始生成' }}
+            {{ store.isGenerating ? '生成中...' : '开始生成' }}
           </a-button>
         </div>
       </div>
@@ -167,42 +197,60 @@
         <div class="result-header">
           <h3>生成结果</h3>
           <div class="result-actions">
-            <a-button type="text" @click="clearResults">
+            <a-button type="primary" class="clear-btn" @click="clearResults">
               <template #icon><DeleteOutlined /></template>
-              清空
+              清空结果
             </a-button>
           </div>
         </div>
 
         <div class="result-content">
-          <div v-if="!generating && !results.length" class="empty-result">
+          <div v-if="!store.isGenerating && !paginatedResults.length" class="empty-result">
             <a-empty description="暂无生成结果" />
           </div>
           <div v-else class="result-grid">
-            <div v-for="(result, index) in results" :key="'img-' + index" class="result-item">
-              <div class="result-image" @click="showImagePreview(result.url)">
-                <img :src="result.url" :alt="'生成结果 ' + (index + 1)" />
-                <div class="image-actions">
-                  <a-button type="text" @click.stop="downloadImage(result.url)">
-                    <template #icon><DownloadOutlined /></template>
-                  </a-button>
-                  <a-button type="text" @click.stop="saveToGallery()">
-                    <template #icon><SaveOutlined /></template>
-                  </a-button>
-                </div>
-              </div>
-            </div>
             <!-- 占位符格子 -->
-            <template v-if="generating">
+            <template v-if="store.isGenerating">
               <div
-                v-for="i in formData.parameters.n"
+                v-for="i in store.formData.parameters.n"
                 :key="'placeholder-' + i"
                 class="result-item placeholder-item"
               >
                 <a-spin size="large" />
               </div>
             </template>
+            <div
+              v-for="(result, index) in paginatedResults"
+              :key="'img-' + index"
+              class="result-item"
+            >
+              <div class="result-image" @click="showImagePreview(result.url)">
+                <img :src="result.url" :alt="'生成结果 ' + (index + 1)" />
+                <div class="image-actions">
+                  <a-button type="text" @click.stop="downloadImage(result.url)">
+                    <template #icon><DownloadOutlined /></template>
+                  </a-button>
+                  <a-button type="text" @click.stop="saveToGallery(result.url)">
+                    <template #icon><SaveOutlined /></template>
+                  </a-button>
+                  <a-button type="text" @click.stop="removeImage(index)" class="delete-btn">
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <!-- 分页组件 -->
+        <div v-if="store.results.length > 0" class="pagination-container">
+          <CustomPagination
+            :current="pagination.current"
+            :pageSize="pagination.pageSize"
+            :total="store.results.length"
+            :pageSizeOptions="['6', '12', '18', '24']"
+            @change="handlePageChange"
+          />
         </div>
       </div>
     </div>
@@ -222,43 +270,124 @@
         style="max-width: 100%; max-height: 80vh; display: block; margin: 0 auto"
       />
     </a-modal>
+
+    <!-- 添加图片上传对话框 -->
+    <a-modal
+      v-model:open="showUploadModal"
+      title="保存到图库"
+      @ok="handleUploadConfirm"
+      @cancel="handleUploadCancel"
+      :confirmLoading="uploading"
+      class="upload-modal"
+      :maskStyle="{ backdropFilter: 'blur(10px)' }"
+    >
+      <a-form :model="uploadForm" layout="vertical">
+        <a-form-item label="图片名称" required>
+          <a-input v-model:value="uploadForm.name" placeholder="请输入图片名称" />
+        </a-form-item>
+
+        <a-form-item label="图片描述">
+          <a-textarea
+            v-model:value="uploadForm.description"
+            placeholder="请输入图片描述"
+            :rows="4"
+          />
+        </a-form-item>
+
+        <a-form-item label="图片分类">
+          <a-select
+            v-model:value="uploadForm.categoryId"
+            placeholder="请选择图片分类"
+            :loading="loadingCategories"
+            allowClear
+          >
+            <a-select-option v-for="category in categories" :key="category" :value="category">
+              {{ category }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="图片标签">
+          <a-select
+            v-model:value="uploadForm.tags"
+            mode="multiple"
+            placeholder="请选择图片标签"
+            :loading="loadingTags"
+            allowClear
+          >
+            <a-select-option v-for="tag in tags" :key="tag" :value="tag">
+              {{ tag }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="是否公开">
+          <a-switch
+            v-model:checked="uploadForm.isPublic"
+            checked-children="公开"
+            un-checked-children="私密"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, onMounted, computed, reactive } from 'vue'
 import { message } from 'ant-design-vue'
-import { DeleteOutlined, DownloadOutlined, SaveOutlined } from '@ant-design/icons-vue'
+import {
+  DeleteOutlined,
+  DownloadOutlined,
+  SaveOutlined,
+  SyncOutlined,
+  PictureOutlined,
+  SettingOutlined,
+  ThunderboltOutlined,
+} from '@ant-design/icons-vue'
 import { createTextToImageTask, queryOutPaintingTask } from '@/api/aiServiceController'
+import { useAiImageStore } from '@/stores/aiImageStore'
+import { storeToRefs } from 'pinia'
+import CustomPagination from '@/components/CustomPagination.vue'
+import { uploadPictureByUrl, editPicture, listPictureTagCategory } from '@/api/pictureController'
 
-// 表单数据
-const formData = ref<Required<API.Text2ImageRequest>>({
-  model: 'wanx2.1-t2i-turbo',
-  input: {
-    prompt: '',
-    negativePrompt: '',
-  },
-  parameters: {
-    n: 1,
-    width: 512,
-    height: 512,
-    prompt_extend: true,
-    watermark: false,
-    seed: Math.floor(Math.random() * 1000000),
-    steps: 40,
-    shift: 3.0,
-    cfg: 4.5,
-  },
-})
+const store = useAiImageStore()
 
-// 其他状态
-const resolution = ref('1024x1024')
-const generating = ref(false)
-const results = ref<Array<{ url: string }>>([])
-const taskId = ref<string>('')
-const taskTimer = ref<number | null>(null)
+// 从 store 中解构状态，保持响应性
+const { formData, currentTaskId, isGenerating, pollingIntervalId, resolution } = storeToRefs(store)
+
+// 从 store 中解构 actions，直接使用
+const {
+  setIsGenerating,
+  setCurrentTaskId,
+  setPollingIntervalId,
+  addTaskToHistory,
+  updateTaskStatus,
+  addResults,
+  cleanupTaskHistory,
+} = store
+
 const showPreviewModal = ref(false) // 控制预览模态框的显示
 const previewImageUrl = ref('') // 预览图片的URL
+
+// 分页状态
+const pagination = reactive({
+  current: 1,
+  pageSize: 6,
+})
+
+// 计算当前页的结果
+const paginatedResults = computed(() => {
+  const start = (pagination.current - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return store.results.slice(start, end)
+})
+
+// 处理分页变化
+const handlePageChange = (current: number, size: number) => {
+  pagination.current = current
+  pagination.pageSize = size
+}
 
 // 类型守卫函数，判断是否是 Text2ImageTaskResponse 类型
 function isText2ImageTaskResponse(data: unknown): data is API.Text2ImageTaskResponse {
@@ -283,7 +412,7 @@ const handleGenerate = async () => {
     return
   }
 
-  generating.value = true
+  setIsGenerating(true) // 更新 store 中的生成状态
   try {
     // 设置分辨率
     const [width, height] = resolution.value.split('x').map(Number)
@@ -291,9 +420,18 @@ const handleGenerate = async () => {
     formData.value.parameters.height = height
 
     // 创建任务
-    const res = await createTextToImageTask(formData.value)
+    const res = await createTextToImageTask(formData.value) // 使用 store 中的 formData
     if (res.data.code === 200 && res.data.data?.output?.taskId) {
-      taskId.value = res.data.data.output.taskId
+      const taskId = res.data.data.output.taskId
+      setCurrentTaskId(taskId) // 保存 taskId 到 store
+
+      // 添加任务到历史记录
+      addTaskToHistory({
+        taskId,
+        status: 'RUNNING',
+        createTime: Date.now(),
+      })
+
       message.success('任务创建成功，开始生成图片')
       // 开始轮询任务状态
       startTaskPolling()
@@ -309,21 +447,28 @@ const handleGenerate = async () => {
     } else {
       message.error('生成失败：未知错误')
     }
-    generating.value = false
+    setIsGenerating(false) // 更新 store 中的生成状态
   }
 }
 
 // 开始轮询任务状态
 const startTaskPolling = () => {
-  if (taskTimer.value) {
-    clearInterval(taskTimer.value)
+  if (pollingIntervalId.value) {
+    clearInterval(pollingIntervalId.value)
   }
 
-  taskTimer.value = window.setInterval(async () => {
+  const intervalId = window.setInterval(async () => {
     try {
+      if (!currentTaskId.value) {
+        // 没有任务ID，停止轮询
+        clearInterval(intervalId)
+        setPollingIntervalId(null)
+        setIsGenerating(false)
+        return
+      }
       const res = await queryOutPaintingTask(
         {
-          taskId: taskId.value,
+          taskId: currentTaskId.value,
           taskType: 2, // 文生图任务类型
         },
         {
@@ -340,37 +485,55 @@ const startTaskPolling = () => {
           // 检查 output 和 output.task_status 是否存在
           if (taskData.output && taskData.output.task_status === 'SUCCEEDED') {
             // 任务完成
-            clearInterval(taskTimer.value!)
-            generating.value = false
+            clearInterval(intervalId)
+            setPollingIntervalId(null)
+            setIsGenerating(false)
             message.success('图片生成完成') // 成功提示
-            // 处理结果，追加到现有results后面
-            if (taskData.output.results) {
-              results.value.push(
-                ...taskData.output.results.map((item: { url: string }) => ({ url: item.url })),
-              ) // 追加图片
+
+            // 更新任务状态
+            const resultsFromTask =
+              taskData.output.results?.map((item: { url: string }) => ({ url: item.url })) || []
+            updateTaskStatus(currentTaskId.value, 'SUCCEEDED', resultsFromTask)
+
+            // 处理结果，追加到现有results前面
+            if (resultsFromTask.length > 0) {
+              store.results = resultsFromTask.concat(store.results)
             }
+            setCurrentTaskId(null) // 清除任务ID
           } else if (taskData.output && taskData.output.task_status === 'FAILED') {
             // 任务失败
-            clearInterval(taskTimer.value!)
-            generating.value = false
-            message.error('生成失败：' + (taskData.output.error || '未知错误'))
+            clearInterval(intervalId)
+            setPollingIntervalId(null)
+            setIsGenerating(false)
+            const errorMsg = taskData.output.error || '未知错误'
+            message.error('生成失败：' + errorMsg)
+
+            // 更新任务状态
+            updateTaskStatus(currentTaskId.value, 'FAILED', undefined, errorMsg)
+
+            setCurrentTaskId(null) // 清除任务ID
           }
           // 其他状态继续等待
         } else {
           // 返回的数据结构不符合预期
-          clearInterval(taskTimer.value!)
-          generating.value = false
+          clearInterval(intervalId)
+          setPollingIntervalId(null)
+          setIsGenerating(false)
           message.error('查询任务状态返回数据结构异常')
+          setCurrentTaskId(null) // 清除任务ID
         }
       } else if (res.data.code !== 200) {
         // 接口返回错误，停止轮询
-        clearInterval(taskTimer.value!)
-        generating.value = false
+        clearInterval(intervalId)
+        setPollingIntervalId(null)
+        setIsGenerating(false)
         message.error(res.data.message || '查询任务状态失败')
+        setCurrentTaskId(null) // 清除任务ID
       }
     } catch (error: unknown) {
-      clearInterval(taskTimer.value!)
-      generating.value = false
+      clearInterval(intervalId)
+      setPollingIntervalId(null)
+      setIsGenerating(false)
       // 确保 error 是 Error 实例或具有 message 属性的对象
       if (error instanceof Error) {
         message.error('查询任务状态失败：' + error.message)
@@ -379,20 +542,68 @@ const startTaskPolling = () => {
       } else {
         message.error('查询任务状态失败：未知错误')
       }
+      setCurrentTaskId(null) // 清除任务ID
     }
   }, 3000) // 每3秒查询一次
+
+  setPollingIntervalId(intervalId)
 }
 
-// 组件卸载时清理定时器
+// 组件挂载时恢复状态
+onMounted(() => {
+  // 清理过期的任务历史记录
+  cleanupTaskHistory()
+
+  // 如果有正在进行中的任务，则恢复轮询
+  if (isGenerating.value && currentTaskId.value) {
+    message.info('检测到有未完成的图片生成任务，正在恢复...')
+    startTaskPolling()
+  }
+
+  // 如果有已完成的任务但结果未显示，则显示结果
+  const completedTasks = store.taskHistory.filter(
+    (task) => task.status === 'SUCCEEDED' && task.results && task.results.length > 0,
+  )
+
+  if (completedTasks.length > 0) {
+    // 将所有已完成任务的结果合并，并去重
+    const allResults = completedTasks.flatMap((task) => task.results || [])
+    const uniqueResults = allResults.filter(
+      (result, index, self) => index === self.findIndex((r) => r.url === result.url),
+    )
+
+    // 检查当前 results 中是否已存在这些结果
+    const existingUrls = new Set(store.results.map((r) => r.url))
+    const newResults = uniqueResults.filter((result) => !existingUrls.has(result.url))
+
+    if (newResults.length > 0) {
+      addResults(newResults)
+    }
+  }
+})
+
+// 组件卸载时清理定时器 (只清除非持久化的，持久化任务的定时器不清除)
 onUnmounted(() => {
-  if (taskTimer.value) {
-    clearInterval(taskTimer.value)
+  // 如果任务仍在进行中，不清除定时器，让其在后台继续
+  // 否则，如果定时器存在且任务已完成/失败，则清除
+  if (pollingIntervalId.value && !isGenerating.value) {
+    clearInterval(pollingIntervalId.value)
+    setPollingIntervalId(null)
   }
 })
 
 // 清空结果
 const clearResults = () => {
-  results.value = []
+  // 清空 results 数组
+  store.results = []
+
+  // 清空 taskHistory 中的所有结果
+  store.taskHistory = store.taskHistory.map((task) => ({
+    ...task,
+    results: [],
+  }))
+
+  message.success('已清空所有生成结果')
 }
 
 // 下载图片
@@ -406,10 +617,113 @@ const downloadImage = (url: string) => {
   message.success('开始下载图片')
 }
 
-// 保存到图库
-const saveToGallery = () => {
-  // TODO: 实现保存到图库的逻辑
-  message.success('已保存到图库')
+// 上传相关的状态
+const showUploadModal = ref(false)
+const uploading = ref(false)
+const loadingCategories = ref(false)
+const loadingTags = ref(false)
+const categories = ref<API.PictureTagCategory['categoryList']>([])
+const tags = ref<API.PictureTagCategory['tagList']>([])
+const currentUploadImageUrl = ref('')
+
+// 上传表单数据
+const uploadForm = reactive({
+  name: '',
+  description: '',
+  categoryId: undefined as string | undefined,
+  tags: [] as string[],
+  isPublic: false,
+})
+
+// 打开上传对话框
+const saveToGallery = (url?: string) => {
+  if (url) {
+    currentUploadImageUrl.value = url
+  }
+  showUploadModal.value = true
+  // 重置表单
+  uploadForm.name = ''
+  uploadForm.description = ''
+  uploadForm.categoryId = undefined
+  uploadForm.tags = []
+  uploadForm.isPublic = false
+  // 获取分类和标签
+  fetchCategoriesAndTags()
+}
+
+// 获取分类和标签数据
+const fetchCategoriesAndTags = async () => {
+  loadingCategories.value = true
+  loadingTags.value = true
+  try {
+    const res = await listPictureTagCategory()
+    if (res.data.code === 200 && res.data.data) {
+      categories.value = res.data.data.categoryList || []
+      tags.value = res.data.data.tagList || []
+    }
+  } catch (_error) {
+    message.error('获取分类和标签失败')
+  } finally {
+    loadingCategories.value = false
+    loadingTags.value = false
+  }
+}
+
+// 处理上传确认
+const handleUploadConfirm = async () => {
+  if (!uploadForm.name) {
+    message.warning('请填写图片名称')
+    return
+  }
+
+  uploading.value = true
+  try {
+    // 第一步：上传图片
+    const uploadRes = await uploadPictureByUrl({
+      fileurl: currentUploadImageUrl.value,
+      pictureUploadRequest: {
+        name: uploadForm.name,
+        spaceId: uploadForm.isPublic ? '0' : undefined, // 这里稍后会填充用户spaceId
+      },
+    })
+
+    if (uploadRes.data.code === 200 && uploadRes.data.data) {
+      const pictureId = uploadRes.data.data.id
+
+      // 第二步：更新图片信息
+      const editRes = await editPicture({
+        id: pictureId,
+        name: uploadForm.name,
+        introduction: uploadForm.description, // 将 description 改为 introduction
+        categoryId: uploadForm.categoryId,
+        tags: uploadForm.tags,
+        spaceId: uploadForm.isPublic ? '0' : undefined, // 如果是公开，设置spaceId为0
+      })
+
+      if (editRes.data.code === 200) {
+        message.success('保存到图库成功')
+        showUploadModal.value = false
+      } else {
+        throw new Error(editRes.data.message || '更新图片信息失败')
+      }
+    } else {
+      throw new Error(uploadRes.data.message || '上传图片失败')
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      message.error(error.message)
+    } else {
+      message.error('保存到图库失败')
+    }
+  } finally {
+    uploading.value = false
+  }
+}
+
+// 处理上传取消
+const handleUploadCancel = () => {
+  showUploadModal.value = false
+  currentUploadImageUrl.value = ''
 }
 
 // 显示图片预览
@@ -422,6 +736,30 @@ const showImagePreview = (url: string) => {
 const handleCancelPreview = () => {
   showPreviewModal.value = false
   previewImageUrl.value = ''
+}
+
+// 删除单张图片
+const removeImage = (index: number) => {
+  const imageToRemove = store.results[index]
+  if (imageToRemove) {
+    // 从 store 的 results 数组中删除
+    store.results = store.results.filter((_, i) => i !== index)
+
+    // 从 taskHistory 中删除相关结果
+    store.taskHistory = store.taskHistory.map((task) => {
+      if (task.results) {
+        task.results = task.results.filter((result) => result.url !== imageToRemove.url)
+      }
+      return task
+    })
+
+    message.success('已删除图片')
+  }
+}
+
+// 生成随机种子
+const generateRandomSeed = () => {
+  store.formData.parameters.seed = Math.floor(Math.random() * 2147483647)
 }
 </script>
 
@@ -458,25 +796,96 @@ const handleCancelPreview = () => {
   }
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 40px;
-  position: relative;
-  z-index: 1;
+.header-section {
+  margin-bottom: 30px;
 }
 
-.page-header h1 {
+.header-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.title {
   font-size: 36px;
   font-weight: 600;
-  margin-bottom: 12px;
+  color: #fff;
+  margin-bottom: 16px;
   background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: fadeInDown 0.8s ease;
 }
 
-.subtitle {
+.description {
   font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  animation: fadeInUp 0.8s ease;
+}
+
+.feature-tags {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  animation: fadeIn 1s ease;
+}
+
+.feature-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(127, 90, 240, 0.1);
+  border: 1px solid rgba(127, 90, 240, 0.2);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.feature-tag:hover {
+  transform: translateY(-2px);
+  background: rgba(127, 90, 240, 0.2);
+  box-shadow: 0 4px 12px rgba(127, 90, 240, 0.2);
+}
+
+.feature-tag .anticon {
+  font-size: 16px;
+  color: #7f5af0;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .main-content {
@@ -598,35 +1007,49 @@ const handleCancelPreview = () => {
 
 .result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .result-item {
   position: relative;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  aspect-ratio: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .result-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .result-image {
   position: relative;
-  padding-top: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .result-image img {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.placeholder-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  aspect-ratio: 1;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .image-actions {
@@ -635,11 +1058,11 @@ const handleCancelPreview = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(73, 71, 71, 0.5); /* 根据用户之前的修改 */
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -649,12 +1072,10 @@ const handleCancelPreview = () => {
 }
 
 .image-actions .ant-btn {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -662,17 +1083,17 @@ const handleCancelPreview = () => {
 }
 
 .image-actions .ant-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
   transform: scale(1.1);
+  background: #fff;
 }
 
-/* 占位符样式 */
-.placeholder-item {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px; /* 确保占位符有高度 */
-  background: rgba(0, 0, 0, 0.3);
+.image-actions .ant-btn.delete-btn {
+  background: rgba(255, 77, 79, 0.9);
+  color: #fff;
+}
+
+.image-actions .ant-btn.delete-btn:hover {
+  background: #ff4d4f;
 }
 
 /* 响应式设计 */
@@ -769,5 +1190,191 @@ const handleCancelPreview = () => {
 .seed-input :deep(.ant-input-number:hover) {
   transform: scale(1.02); /* 悬停时轻微放大 */
   box-shadow: 0 0 8px rgba(127, 90, 240, 0.5) !important; /* 发光效果 */
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.seed-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seed-input {
+  width: 180px;
+}
+
+.random-seed-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.random-seed-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(127, 90, 240, 0.3);
+}
+
+.random-seed-btn:active {
+  transform: translateY(0);
+}
+
+.random-seed-btn .anticon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.random-seed-btn:hover .anticon {
+  transform: rotate(180deg);
+}
+
+.result-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.clear-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+}
+
+.clear-btn:active {
+  transform: translateY(0);
+}
+
+.clear-btn .anticon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.clear-btn:hover .anticon {
+  transform: rotate(180deg);
+}
+
+/* 上传对话框样式 */
+.upload-modal :deep(.ant-modal-content) {
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.upload-modal :deep(.ant-modal-header) {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-modal :deep(.ant-modal-title) {
+  color: #fff;
+}
+
+.upload-modal :deep(.ant-modal-close) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.upload-modal :deep(.ant-form-item-label > label) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.upload-modal :deep(.ant-input),
+.upload-modal :deep(.ant-input-textarea),
+.upload-modal :deep(.ant-select-selector) {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.upload-modal :deep(.ant-input::placeholder),
+.upload-modal :deep(.ant-input-textarea::placeholder) {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.upload-modal :deep(.ant-select-selection-placeholder) {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.upload-modal :deep(.ant-select-selection-item) {
+  background: rgba(127, 90, 240, 0.2);
+  border: 1px solid rgba(127, 90, 240, 0.3);
+  color: #fff;
+}
+
+.upload-modal :deep(.ant-select-dropdown) {
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-modal :deep(.ant-select-item) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.upload-modal :deep(.ant-select-item-option-selected) {
+  background: rgba(127, 90, 240, 0.2);
+  color: #fff;
+}
+
+.upload-modal :deep(.ant-select-item-option-active) {
+  background: rgba(127, 90, 240, 0.1);
+}
+
+.upload-modal :deep(.ant-switch) {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.upload-modal :deep(.ant-switch-checked) {
+  background: #7f5af0;
+}
+
+.upload-modal :deep(.ant-modal-footer) {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-modal :deep(.ant-btn) {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.upload-modal :deep(.ant-btn-primary) {
+  background: #7f5af0;
+  border: none;
+  color: #fff;
+}
+
+.upload-modal :deep(.ant-btn-primary:hover) {
+  background: #6f4fd8;
+}
+
+.upload-modal :deep(.ant-btn-default:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 </style>
