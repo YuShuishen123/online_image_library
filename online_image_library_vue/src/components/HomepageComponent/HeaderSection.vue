@@ -15,14 +15,26 @@
             >
           </li>
           <li>
-            <a
-              :class="{ active: isActiveMenu('/AIintroduction'), glow: hoverMenu === 'ai' }"
-              href="#"
-              @mouseenter="hoverMenu = 'ai'"
-              @mouseleave="hoverMenu = ''"
-              @click.prevent="router.push('/AIintroduction')"
-              >智能编辑</a
-            >
+            <a-dropdown>
+              <a
+                :class="{
+                  active: isActiveMenu('/AIintroduction') || isActiveMenu('/text2image'),
+                  glow: hoverMenu === 'ai',
+                }"
+                href="#"
+                @mouseenter="hoverMenu = 'ai'"
+                @mouseleave="hoverMenu = ''"
+                @click.prevent="router.push('/AIintroduction')"
+                >智能编辑</a
+              >
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item>
+                    <a href="#" @click.prevent="router.push('/AI/text2image')">AI 文生图</a>
+                  </a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
           </li>
           <li>
             <a
@@ -155,6 +167,7 @@ function isActiveMenu(path: string) {
 .nav-links a {
   color: var(--text-color);
   font-size: 16px;
+  display: inline-block;
 }
 
 .nav-links a.active {
@@ -224,5 +237,41 @@ function isActiveMenu(path: string) {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(127, 90, 240, 0.4);
   color: white;
+}
+
+/* 添加下拉菜单样式 */
+:deep(.ant-dropdown-menu) {
+  background: rgba(22, 22, 26, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+:deep(.ant-dropdown-menu-item) {
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+:deep(.ant-dropdown-menu-item:hover) {
+  background: rgba(127, 90, 240, 0.1);
+}
+
+:deep(.ant-dropdown-menu-item a) {
+  color: var(--text-color);
+  display: block;
+  padding: 4px 8px;
+}
+
+:deep(.ant-dropdown-menu-item:hover a) {
+  color: var(--primary-color);
+}
+
+:deep(.ant-dropdown-menu-item-selected) {
+  background: rgba(127, 90, 240, 0.2);
+}
+
+:deep(.ant-dropdown-menu-item-selected a) {
+  color: var(--primary-color);
 }
 </style>
