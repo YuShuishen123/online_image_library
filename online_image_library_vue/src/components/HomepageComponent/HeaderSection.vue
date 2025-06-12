@@ -103,6 +103,7 @@ function logout() {
   userLogout()
     .then(() => {
       loginUserStore.setLoginUser({ id: 'NOT_LOGIN' })
+      router.push('/')
       message.success('退出登录成功')
     })
     .catch(() => {

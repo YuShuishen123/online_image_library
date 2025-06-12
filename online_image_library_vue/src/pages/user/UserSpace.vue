@@ -1,5 +1,53 @@
 <template>
   <div class="picture-container" ref="pictureContainer">
+    <!-- 添加空间信息展示区域 -->
+    <div class="space-info-container">
+      <div class="space-info-card">
+        <div class="space-header">
+          <h2 class="space-name">{{ spaceInfo.spaceName || '我的空间' }}</h2>
+          <div class="space-level">
+            <span class="level-badge">Lv.{{ spaceInfo.spaceLevel || 1 }}</span>
+          </div>
+        </div>
+        <div class="space-stats">
+          <div class="stat-item">
+            <span class="stat-label">图片数量</span>
+            <div class="progress-container">
+              <a-progress
+                :percent="(Number(spaceInfo.totalCount) / Number(spaceInfo.maxCount)) * 100"
+                :show-info="false"
+                :stroke-color="{
+                  '0%': '#108ee9',
+                  '100%': '#87d068',
+                }"
+              />
+              <span class="progress-text">
+                {{ spaceInfo.totalCount || 0 }}/{{ spaceInfo.maxCount || 0 }}
+              </span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">存储空间</span>
+            <div class="progress-container">
+              <a-progress
+                :percent="(Number(spaceInfo.totalSize) / Number(spaceInfo.maxSize)) * 100"
+                :show-info="false"
+                :stroke-color="{
+                  '0%': '#108ee9',
+                  '100%': '#87d068',
+                }"
+              />
+              <span class="progress-text">
+                {{ formatFileSize(Number(spaceInfo.totalSize) || 0) }}/{{
+                  formatFileSize(Number(spaceInfo.maxSize) || 0)
+                }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading-container">
       <a-spin tip="加载中..."></a-spin>
     </div>
@@ -210,6 +258,22 @@ const userSpaceId = ref<string>('')
 const showLoadMoreButton = ref(false)
 const hasMore = ref(true)
 
+// 添加空间信息相关的响应式变量
+const spaceInfo = ref<API.Space>({
+  id: '',
+  spaceName: '',
+  spaceLevel: 1,
+  maxSize: 0,
+  maxCount: 0,
+  totalSize: 0,
+  totalCount: 0,
+  userId: '',
+  createTime: '',
+  editTime: '',
+  updateTime: '',
+  isDelete: 0,
+})
+
 // 设置 IntersectionObserver
 const setupObserver = () => {
   if (!pictureContainer.value) return
@@ -227,7 +291,7 @@ const setupObserver = () => {
 // 滚动监听
 const handleScroll = () => {
   if (!pictureContainer.value || loading.value || loadingMore.value || !hasMore.value) return
-  const { scrollTop, scrollHeight, clientHeight } = pictureContainer.value
+  const { scrollTop, scrollHeight, clientHeight } = document.documentElement
   if (scrollTop + clientHeight >= scrollHeight - 100) {
     fetchPictureList(true)
   }
@@ -239,9 +303,10 @@ const fetchUserSpaceId = async () => {
     const res = await getSpace()
     if (res.data.code === 200 && res.data.data) {
       userSpaceId.value = res.data.data.id || ''
+      spaceInfo.value = res.data.data
     }
   } catch (error) {
-    console.error('获取用户空间ID失败:', error)
+    console.error('获取用户空间信息失败:', error)
     message.error('获取用户空间信息失败')
   }
 }
@@ -488,18 +553,14 @@ onMounted(async () => {
   await fetchUserSpaceId()
   fetchPictureList(false)
   setupObserver()
-  if (pictureContainer.value) {
-    pictureContainer.value.addEventListener('scroll', handleScroll)
-  }
+  window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
   if (observer && pictureContainer.value) {
     observer.unobserve(pictureContainer.value)
   }
-  if (pictureContainer.value) {
-    pictureContainer.value.removeEventListener('scroll', handleScroll)
-  }
+  window.removeEventListener('scroll', handleScroll)
   pictureList.value = []
   currentPicture.value = null
   previewImage.value = ''
@@ -507,9 +568,17 @@ onUnmounted(() => {
 })
 
 const formatFileSize = (size: number) => {
-  if (!size) return '未知'
-  const mb = size / (1024 * 1024)
-  return `${mb.toFixed(2)} MB`
+  if (!size) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let index = 0
+  let fileSize = size
+
+  while (fileSize >= 1024 && index < units.length - 1) {
+    fileSize /= 1024
+    index++
+  }
+
+  return `${fileSize.toFixed(2)} ${units[index]}`
 }
 
 const formatDate = (dateStr: string) => {
@@ -971,5 +1040,93 @@ const formatDate = (dateStr: string) => {
   align-items: center;
   padding: 16px;
   margin-top: 20px;
+}
+
+/* 添加空间信息相关样式 */
+.space-info-container {
+  width: 70%;
+  margin: 0 auto 30px;
+  padding: 20px;
+}
+
+.space-info-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.space-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.space-name {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.space-level {
+  display: flex;
+  align-items: center;
+}
+
+.level-badge {
+  background: linear-gradient(135deg, #7f5af0 0%, #a217b4 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.space-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+.progress-container {
+  position: relative;
+  width: 100%;
+}
+
+.progress-text {
+  position: absolute;
+  right: 0;
+  top: -20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+:deep(.ant-progress-bg) {
+  background: linear-gradient(90deg, #7f5af0 0%, #a217b4 100%);
+}
+
+:deep(.ant-progress-outer) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+:deep(.ant-progress-inner) {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
 }
 </style>
