@@ -271,65 +271,12 @@
       />
     </a-modal>
 
-    <!-- 添加图片上传对话框 -->
-    <a-modal
-      v-model:open="showUploadModal"
-      title="保存到图库"
-      @ok="handleUploadConfirm"
-      @cancel="handleUploadCancel"
-      :confirmLoading="uploading"
-      class="upload-modal"
-      :maskStyle="{ backdropFilter: 'blur(10px)' }"
-    >
-      <a-form :model="uploadForm" layout="vertical">
-        <a-form-item label="图片名称" required>
-          <a-input v-model:value="uploadForm.name" placeholder="请输入图片名称" />
-        </a-form-item>
-
-        <a-form-item label="图片描述">
-          <a-textarea
-            v-model:value="uploadForm.description"
-            placeholder="请输入图片描述"
-            :rows="4"
-          />
-        </a-form-item>
-
-        <a-form-item label="图片分类">
-          <a-select
-            v-model:value="uploadForm.categoryId"
-            placeholder="请选择图片分类"
-            :loading="loadingCategories"
-            allowClear
-          >
-            <a-select-option v-for="category in categories" :key="category" :value="category">
-              {{ category }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="图片标签">
-          <a-select
-            v-model:value="uploadForm.tags"
-            mode="multiple"
-            placeholder="请选择图片标签"
-            :loading="loadingTags"
-            allowClear
-          >
-            <a-select-option v-for="tag in tags" :key="tag" :value="tag">
-              {{ tag }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-
-        <a-form-item label="是否公开">
-          <a-switch
-            v-model:checked="uploadForm.isPublic"
-            checked-children="公开"
-            un-checked-children="私密"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <!-- 使用新的上传到图库组件 -->
+    <UploadToGalleryModal
+      v-model:show="showUploadModal"
+      :imageUrl="currentUploadImageUrl"
+      @success="handleUploadSuccess"
+    />
   </div>
 </template>
 
@@ -349,7 +296,7 @@ import { createTextToImageTask, queryOutPaintingTask } from '@/api/aiServiceCont
 import { useAiImageStore } from '@/stores/aiImageStore'
 import { storeToRefs } from 'pinia'
 import CustomPagination from '@/components/CustomPagination.vue'
-import { uploadPictureByUrl, editPicture, listPictureTagCategory } from '@/api/pictureController'
+import UploadToGalleryModal from '@/components/UploadToGalleryModal.vue'
 
 const store = useAiImageStore()
 
@@ -608,21 +555,7 @@ const downloadImage = (url: string) => {
 
 // 上传相关的状态
 const showUploadModal = ref(false)
-const uploading = ref(false)
-const loadingCategories = ref(false)
-const loadingTags = ref(false)
-const categories = ref<API.PictureTagCategory['categoryList']>([])
-const tags = ref<API.PictureTagCategory['tagList']>([])
 const currentUploadImageUrl = ref('')
-
-// 上传表单数据
-const uploadForm = reactive({
-  name: '',
-  description: '',
-  categoryId: undefined as string | undefined,
-  tags: [] as string[],
-  isPublic: false,
-})
 
 // 打开上传对话框
 const saveToGallery = (url?: string) => {
@@ -630,90 +563,10 @@ const saveToGallery = (url?: string) => {
     currentUploadImageUrl.value = url
   }
   showUploadModal.value = true
-  // 重置表单
-  uploadForm.name = ''
-  uploadForm.description = ''
-  uploadForm.categoryId = undefined
-  uploadForm.tags = []
-  uploadForm.isPublic = false
-  // 获取分类和标签
-  fetchCategoriesAndTags()
 }
 
-// 获取分类和标签数据
-const fetchCategoriesAndTags = async () => {
-  loadingCategories.value = true
-  loadingTags.value = true
-  try {
-    const res = await listPictureTagCategory()
-    if (res.data.code === 200 && res.data.data) {
-      categories.value = res.data.data.categoryList || []
-      tags.value = res.data.data.tagList || []
-    }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      message.error('获取分类和标签失败: ' + error.message)
-    } else {
-      message.error('获取分类和标签失败: 未知错误')
-    }
-  } finally {
-    loadingCategories.value = false
-    loadingTags.value = false
-  }
-}
-
-// 处理上传确认
-const handleUploadConfirm = async () => {
-  if (!uploadForm.name) {
-    message.warning('请填写图片名称')
-    return
-  }
-
-  uploading.value = true
-  try {
-    // 第一步：上传图片
-    const uploadRes = await uploadPictureByUrl({
-      fileurl: currentUploadImageUrl.value,
-      pictureUploadRequest: {
-        name: uploadForm.name,
-      },
-    })
-
-    if (uploadRes.data.code === 200 && uploadRes.data.data) {
-      const pictureId = uploadRes.data.data.id
-
-      // 第二步：更新图片信息
-      const editRes = await editPicture({
-        id: pictureId,
-        name: uploadForm.name,
-        introduction: uploadForm.description, // 将 description 改为 introduction
-        categoryId: uploadForm.categoryId,
-        tags: uploadForm.tags,
-        spaceId: uploadForm.isPublic ? '0' : undefined, // 如果是公开，设置spaceId为0
-      })
-
-      if (editRes.data.code === 200) {
-        message.success('保存到图库成功')
-        showUploadModal.value = false
-      } else {
-        throw new Error(editRes.data.message || '更新图片信息失败')
-      }
-    } else {
-      throw new Error(uploadRes.data.message || '上传图片失败')
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      message.error(error.message)
-    } else {
-      message.error('保存到图库失败')
-    }
-  } finally {
-    uploading.value = false
-  }
-}
-
-// 处理上传取消
-const handleUploadCancel = () => {
+// 处理上传成功
+const handleUploadSuccess = () => {
   showUploadModal.value = false
   currentUploadImageUrl.value = ''
 }
