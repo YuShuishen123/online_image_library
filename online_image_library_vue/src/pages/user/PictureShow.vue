@@ -168,7 +168,7 @@
 <script lang="ts" setup>
 import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { listPictureVoPage } from '@/api/pictureController'
-import { getUserVobyId } from '@/api/userController'
+import { useUploaderStore } from '@/stores/useUploaderStore'
 import { message } from 'ant-design-vue'
 import CustomPagination from '@/components/CustomPagination.vue' // 引入自定义分页组件
 import { DownloadOutlined } from '@ant-design/icons-vue'
@@ -204,6 +204,8 @@ const previewVisible = ref(false)
 const previewImage = ref<string>('')
 const currentPicture = ref<ExtendedPictureVO | null>(null)
 
+const uploaderStore = useUploaderStore()
+
 const showPreview = async (picture: ExtendedPictureVO) => {
   previewImage.value = picture.url || ''
   currentPicture.value = picture
@@ -211,25 +213,11 @@ const showPreview = async (picture: ExtendedPictureVO) => {
 
   // 获取用户信息
   if (picture.userId) {
-    try {
-      const res = await getUserVobyId({
-        id: picture.userId,
-      })
-      if (res.data?.code === 200 && res.data.data?.records?.[0]) {
-        const userInfo = res.data.data.records[0]
-        currentPicture.value = {
-          ...currentPicture.value,
-          uploader: {
-            avatar: userInfo.userAvatar || '/public/default-avatar.png',
-            nickname: userInfo.userName || '未知用户',
-          },
-        }
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
+    const uploaderInfo = await uploaderStore.getUploaderInfo(picture.userId)
+    currentPicture.value = {
+      ...currentPicture.value,
+      uploader: uploaderInfo,
     }
-  } else {
-    console.log('picture.userId is undefined or null. Cannot fetch user info.')
   }
 }
 

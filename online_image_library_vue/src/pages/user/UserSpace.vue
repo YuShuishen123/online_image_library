@@ -202,8 +202,8 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { listUserUploadPicturePage } from '@/api/pictureController'
-import { getUserVobyId } from '@/api/userController'
 import { getSpace } from '@/api/spaceController'
+import { useUploaderStore } from '@/stores/useUploaderStore'
 import { message, Modal } from 'ant-design-vue'
 import {
   DownOutlined,
@@ -400,6 +400,8 @@ const fetchPictureList = async (append = false) => {
   }
 }
 
+const uploaderStore = useUploaderStore()
+
 const showPreview = async (picture: ExtendedPictureVO) => {
   console.log('showPreview called with picture:', picture)
   previewImage.value = picture.url || ''
@@ -408,29 +410,11 @@ const showPreview = async (picture: ExtendedPictureVO) => {
 
   // 获取用户信息
   if (picture.userId) {
-    console.log('Fetching user info for userId:', picture.userId)
-    try {
-      const res = await getUserVobyId({
-        id: picture.userId,
-      })
-      console.log('getUserVobyId response:', res)
-      if (res.data?.code === 200 && res.data.data?.records?.[0]) {
-        const userInfo = res.data.data.records[0]
-        console.log('Fetched userInfo:', userInfo)
-        currentPicture.value = {
-          ...currentPicture.value,
-          uploader: {
-            avatar: userInfo.userAvatar || '/public/default-avatar.png',
-            nickname: userInfo.userName || '未知用户',
-          },
-        }
-        console.log('Updated currentPicture.value with uploader:', currentPicture.value)
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
+    const uploaderInfo = await uploaderStore.getUploaderInfo(picture.userId)
+    currentPicture.value = {
+      ...currentPicture.value,
+      uploader: uploaderInfo,
     }
-  } else {
-    console.log('picture.userId is undefined or null. Cannot fetch user info.')
   }
 }
 
