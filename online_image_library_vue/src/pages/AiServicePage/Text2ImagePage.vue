@@ -356,17 +356,6 @@ const store = useAiImageStore()
 // 从 store 中解构状态，保持响应性
 const { formData, currentTaskId, isGenerating, pollingIntervalId, resolution } = storeToRefs(store)
 
-// 从 store 中解构 actions，直接使用
-const {
-  setIsGenerating,
-  setCurrentTaskId,
-  setPollingIntervalId,
-  addTaskToHistory,
-  updateTaskStatus,
-  addResults,
-  cleanupTaskHistory,
-} = store
-
 const showPreviewModal = ref(false) // 控制预览模态框的显示
 const previewImageUrl = ref('') // 预览图片的URL
 
@@ -412,7 +401,7 @@ const handleGenerate = async () => {
     return
   }
 
-  setIsGenerating(true) // 更新 store 中的生成状态
+  store.setIsGenerating(true) // 更新 store 中的生成状态
   try {
     // 设置分辨率
     const [width, height] = resolution.value.split('x').map(Number)
@@ -423,10 +412,10 @@ const handleGenerate = async () => {
     const res = await createTextToImageTask(formData.value) // 使用 store 中的 formData
     if (res.data.code === 200 && res.data.data?.output?.taskId) {
       const taskId = res.data.data.output.taskId
-      setCurrentTaskId(taskId) // 保存 taskId 到 store
+      store.setCurrentTaskId(taskId) // 保存 taskId 到 store
 
       // 添加任务到历史记录
-      addTaskToHistory({
+      store.addTaskToHistory({
         taskId,
         status: 'RUNNING',
         createTime: Date.now(),
@@ -447,7 +436,7 @@ const handleGenerate = async () => {
     } else {
       message.error('生成失败：未知错误')
     }
-    setIsGenerating(false) // 更新 store 中的生成状态
+    store.setIsGenerating(false) // 更新 store 中的生成状态
   }
 }
 
@@ -462,8 +451,8 @@ const startTaskPolling = () => {
       if (!currentTaskId.value) {
         // 没有任务ID，停止轮询
         clearInterval(intervalId)
-        setPollingIntervalId(null)
-        setIsGenerating(false)
+        store.setPollingIntervalId(null)
+        store.setIsGenerating(false)
         return
       }
       const res = await queryOutPaintingTask(
@@ -486,54 +475,54 @@ const startTaskPolling = () => {
           if (taskData.output && taskData.output.task_status === 'SUCCEEDED') {
             // 任务完成
             clearInterval(intervalId)
-            setPollingIntervalId(null)
-            setIsGenerating(false)
+            store.setPollingIntervalId(null)
+            store.setIsGenerating(false)
             message.success('图片生成完成') // 成功提示
 
             // 更新任务状态
             const resultsFromTask =
               taskData.output.results?.map((item: { url: string }) => ({ url: item.url })) || []
-            updateTaskStatus(currentTaskId.value, 'SUCCEEDED', resultsFromTask)
+            store.updateTaskStatus(currentTaskId.value, 'SUCCEEDED', resultsFromTask)
 
             // 处理结果，追加到现有results前面
             if (resultsFromTask.length > 0) {
               store.results = resultsFromTask.concat(store.results)
             }
-            setCurrentTaskId(null) // 清除任务ID
+            store.setCurrentTaskId(null) // 清除任务ID
           } else if (taskData.output && taskData.output.task_status === 'FAILED') {
             // 任务失败
             clearInterval(intervalId)
-            setPollingIntervalId(null)
-            setIsGenerating(false)
+            store.setPollingIntervalId(null)
+            store.setIsGenerating(false)
             const errorMsg = taskData.output.error || '未知错误'
             message.error('生成失败：' + errorMsg)
 
             // 更新任务状态
-            updateTaskStatus(currentTaskId.value, 'FAILED', undefined, errorMsg)
+            store.updateTaskStatus(currentTaskId.value, 'FAILED', undefined, errorMsg)
 
-            setCurrentTaskId(null) // 清除任务ID
+            store.setCurrentTaskId(null) // 清除任务ID
           }
           // 其他状态继续等待
         } else {
           // 返回的数据结构不符合预期
           clearInterval(intervalId)
-          setPollingIntervalId(null)
-          setIsGenerating(false)
+          store.setPollingIntervalId(null)
+          store.setIsGenerating(false)
           message.error('查询任务状态返回数据结构异常')
-          setCurrentTaskId(null) // 清除任务ID
+          store.setCurrentTaskId(null) // 清除任务ID
         }
       } else if (res.data.code !== 200) {
         // 接口返回错误，停止轮询
         clearInterval(intervalId)
-        setPollingIntervalId(null)
-        setIsGenerating(false)
+        store.setPollingIntervalId(null)
+        store.setIsGenerating(false)
         message.error(res.data.message || '查询任务状态失败')
-        setCurrentTaskId(null) // 清除任务ID
+        store.setCurrentTaskId(null) // 清除任务ID
       }
     } catch (error: unknown) {
       clearInterval(intervalId)
-      setPollingIntervalId(null)
-      setIsGenerating(false)
+      store.setPollingIntervalId(null)
+      store.setIsGenerating(false)
       // 确保 error 是 Error 实例或具有 message 属性的对象
       if (error instanceof Error) {
         message.error('查询任务状态失败：' + error.message)
@@ -542,17 +531,17 @@ const startTaskPolling = () => {
       } else {
         message.error('查询任务状态失败：未知错误')
       }
-      setCurrentTaskId(null) // 清除任务ID
+      store.setCurrentTaskId(null) // 清除任务ID
     }
   }, 3000) // 每3秒查询一次
 
-  setPollingIntervalId(intervalId)
+  store.setPollingIntervalId(intervalId)
 }
 
 // 组件挂载时恢复状态
 onMounted(() => {
   // 清理过期的任务历史记录
-  cleanupTaskHistory()
+  store.cleanupTaskHistory()
 
   // 如果有正在进行中的任务，则恢复轮询
   if (isGenerating.value && currentTaskId.value) {
@@ -577,7 +566,7 @@ onMounted(() => {
     const newResults = uniqueResults.filter((result) => !existingUrls.has(result.url))
 
     if (newResults.length > 0) {
-      addResults(newResults)
+      store.addResults(newResults)
     }
   }
 })
@@ -588,7 +577,7 @@ onUnmounted(() => {
   // 否则，如果定时器存在且任务已完成/失败，则清除
   if (pollingIntervalId.value && !isGenerating.value) {
     clearInterval(pollingIntervalId.value)
-    setPollingIntervalId(null)
+    store.setPollingIntervalId(null)
   }
 })
 
@@ -661,8 +650,12 @@ const fetchCategoriesAndTags = async () => {
       categories.value = res.data.data.categoryList || []
       tags.value = res.data.data.tagList || []
     }
-  } catch (_error) {
-    message.error('获取分类和标签失败')
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      message.error('获取分类和标签失败: ' + error.message)
+    } else {
+      message.error('获取分类和标签失败: 未知错误')
+    }
   } finally {
     loadingCategories.value = false
     loadingTags.value = false
@@ -683,7 +676,6 @@ const handleUploadConfirm = async () => {
       fileurl: currentUploadImageUrl.value,
       pictureUploadRequest: {
         name: uploadForm.name,
-        spaceId: uploadForm.isPublic ? '0' : undefined, // 这里稍后会填充用户spaceId
       },
     })
 
