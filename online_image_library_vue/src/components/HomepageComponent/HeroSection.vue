@@ -68,7 +68,7 @@ function resumeScroll() {
 
 // 获取图片数据，严格参照PictureShow.vue
 async function fetchPictures() {
-  const res = await listPictureVoPage({ current: 1, pageSize: 15, name: '壁纸' })
+  const res = await listPictureVoPage({ current: 1, pageSize: 15, name: '壁纸', picScale: 1.78 })
   if (res.data && res.data.code === 200) {
     // 只保留横图
     const filtered = (res.data.data?.records || []).filter((pic) => {
