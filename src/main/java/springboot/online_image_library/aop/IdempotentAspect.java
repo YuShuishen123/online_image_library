@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
 @Component
 @Aspect
 public class IdempotentAspect {
+    // 获取请求的资源路径
+
+
+    // 获取请求用户的身份
+
+
 
     private static final String SUCCESS_LOCK_KEY = "idempotent:success:";
     private static final String PROCESSING_LOCK_KEY = "idempotent:prcessing:";

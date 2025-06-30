@@ -7,7 +7,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
-
 /**
  * @author Yu'S'hui'shen
  * @description 幂等控制注解

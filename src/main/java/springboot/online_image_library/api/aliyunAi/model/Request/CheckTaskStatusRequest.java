@@ -10,7 +10,6 @@ import lombok.Data;
 @Data
 public class CheckTaskStatusRequest {
 
-
     /**
      * 任务id
      */

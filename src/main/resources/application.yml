@@ -34,6 +34,8 @@ spring:
       #连接测试语句，默认“SELECT 1”，如果数据库没有“SELECT 1”语句，可以配置其他语句
       #connection-test-query: SELECT 1
   # 配置Redis连接池
+
+
   redis:
     database: 0
     host: 127.0.0.1

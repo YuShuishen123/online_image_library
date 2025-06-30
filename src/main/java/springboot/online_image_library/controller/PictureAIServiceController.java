@@ -3,8 +3,12 @@ package springboot.online_image_library.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import springboot.online_image_library.annotation.AuthCheck;
+import springboot.online_image_library.annotation.IdempotentCheck;
 import springboot.online_image_library.api.aliyunAi.AliYunApi;
 import springboot.online_image_library.api.aliyunAi.model.Request.CheckTaskStatusRequest;
 import springboot.online_image_library.api.aliyunAi.model.Request.ExpansionTaskRequestFromTheFrontend;
@@ -23,6 +27,7 @@ import springboot.online_image_library.service.UserService;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Yu'S'hui'shen
@@ -55,6 +60,7 @@ public class PictureAIServiceController {
             method = "POST")
     @AuthCheck(mustRole = UserConstants.DEFAULT_ROLE)
     @PostMapping("/pictureAiService/createOutPaintingTask")
+    @IdempotentCheck(timeOut = 20, timeUnit = TimeUnit.SECONDS)
     public BaseResponse<CreateTaskResponse> createOutPaintingTask(HttpServletRequest request, @RequestBody ExpansionTaskRequestFromTheFrontend expansionTaskRequestFromTheFrontend) {
         ThrowUtils.throwIf(expansionTaskRequestFromTheFrontend == null || expansionTaskRequestFromTheFrontend.getPictureId() == null, ErrorCode.PARAMS_ERROR, "参数为空");
         LoginState loginState = userService.getLoginState(request);

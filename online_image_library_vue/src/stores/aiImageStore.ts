@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import {defineStore} from 'pinia'
 
 // 定义任务历史记录项的类型
 interface TaskHistoryItem {

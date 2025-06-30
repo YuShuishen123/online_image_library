@@ -1,17 +1,7 @@
 <template>
   <a-layout-content class="home-page">
-    <!-- 加载中状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin tip="加载中..."></a-spin>
-    </div>
-
-    <!-- 无图片状态 -->
-    <div v-else-if="pictureList.length === 0" class="empty-container">
-      <a-empty description="暂无图片" />
-    </div>
-
     <!-- 图片列表 -->
-    <div v-else class="picture-masonry">
+    <div v-if="!loading" class="picture-masonry">
       <div
         v-for="picture in pictureList"
         :key="picture.id"
@@ -137,12 +127,12 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted, onUnmounted } from 'vue'
-import { listPictureVoPage } from '@/api/pictureController'
-import { useUploaderStore } from '@/stores/useUploaderStore'
-import { message } from 'ant-design-vue'
+import {onMounted, onUnmounted, reactive, ref} from 'vue'
+import {listPictureVoPage} from '@/api/pictureController'
+import {useUploaderStore} from '@/stores/useUploaderStore'
+import {message} from 'ant-design-vue'
 import CustomPagination from '@/components/CustomPagination.vue'
-import { DownloadOutlined } from '@ant-design/icons-vue'
+import {DownloadOutlined} from '@ant-design/icons-vue'
 
 interface Uploader {
   avatar?: string
@@ -168,7 +158,6 @@ const currentPicture = ref<ExtendedPictureVO | null>(null)
 
 const uploaderStore = useUploaderStore()
 
-// 获取图片列表
 const fetchPictureList = async () => {
   if (loading.value) return
 

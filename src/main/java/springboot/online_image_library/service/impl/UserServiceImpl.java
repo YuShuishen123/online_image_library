@@ -105,8 +105,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserVO getUserVO(User user) {
+        if (user == null) {
+            return new UserVO();
+        }
         UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(user,userVO);
+        BeanUtils.copyProperties(user, userVO);
         return userVO;
     }
 
