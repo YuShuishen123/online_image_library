@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: MZyudada940940@
+      MYSQL_DATABASE: online_image_library
+      MYSQL_USER: pictureuser
+      MYSQL_PASSWORD: MZyudada940940@
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  backend:
+    build: .
+    container_name: backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/online_image_library
+      SPRING_DATASOURCE_USERNAME: pictureuser
+      SPRING_DATASOURCE_PASSWORD: MZyudada940940@
+      SPRING_REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    ports:
+      - "6789:6789"
+    networks:
+      - app-network
+
+  frontend:
+    build: ./online_image_library_vue
+    container_name: frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge
